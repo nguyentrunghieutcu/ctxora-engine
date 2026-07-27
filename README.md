@@ -15,7 +15,7 @@
 | **BM25** | Full-text sparse retrieval (rank-bm25) |
 | **Reranker** | **Local Hybrid Reranker** (BM25 + Keyword Overlap) |
 | **Chunker** | AST-aware chunker (`treesitter_chunker`) |
-| **Memory DB** | SQLite via `memory/episodic.py` — 3 tiers |
+| **Memory DB** | SQLite persistent store — 3 tiers, local relevance ranking, LRU eviction |
 | **Logging** | `~/.mcp-harness/harness-v3.log` |
 | **Config** | `.mcp.json` + `~/.gemini/antigravity/mcp_config.json` |
 | **Entry point** | `server.py` |
@@ -34,15 +34,15 @@ compact-token/
 │   └── compressor.py          # XML/JSON context compressor
 │
 ├── retrieval/
-│   ├── embeddings.py          # Sentence-transformer embedding engine
+│   ├── embeddings.py          # Local TF-IDF + LSA embedding engine
 │   ├── bm25.py                # BM25 sparse index
-│   ├── reranker.py            # Cross-encoder reranker
+│   ├── reranker.py            # Local hybrid reranker
 │   ├── graph.py               # Dependency graph (symbol expansion)
 │   └── cache.py               # TTL retrieval cache
 │
 ├── memory/
 │   ├── episodic.py            # MemoryStore: Episodic / Semantic / Procedural tiers
-│   └── vector_store.py        # LanceDB vector store wrapper
+│   └── vector_store.py        # In-memory Numpy vector store
 │
 ├── context/
 │   ├── assembler.py           # Prompt assembler (multi-mode output)
@@ -50,15 +50,12 @@ compact-token/
 │   └── sanitizer.py           # Input/chunk safety sanitizer
 │
 └── compact/
-    ├── summarizer.py          # Conversation compactor (multi-format)
-    ├── anthropic.py           # Anthropic message format handler
-    ├── openai.py              # OpenAI message format handler
-    └── gemini.py              # Gemini message format handler
+    └── handoff.py             # No-compression conversation handoff store
 ```
 
 ---
 
-## 🎯 13 MCP Tools
+## 🎯 14 MCP Tools
 
 Các tool này được gọi từ MCP client (Codex / Claude Desktop), không phải CLI shell trực tiếp. Payload bên dưới là JSON arguments truyền vào tool.
 
@@ -83,8 +80,8 @@ Pipeline: `index → hybrid score (BM25 + semantic + graph) → rerank → graph
 | `compress` | `true` | Nén chunks thành XML |
 | `force_reindex` | `false` | Force re-chunk ngay cả khi đã index |
 | `target_ratio` | `0.20` | Giới hạn prompt cuối theo % context window |
-| `max_prompt_tokens` | `0` | Giới hạn tuyệt đối; `0` dùng `target_ratio` |
-| `include_report` | `true` | Thêm report token ngắn vào output |
+| `max_prompt_tokens` | `4000` | Giới hạn tuyệt đối theo budget dự án; truyền `0` để dùng `target_ratio` |
+| `include_report` | `false` | Chỉ thêm report token khi cần audit/debug |
 | `base_prompt_policy` | `reject` | `reject` hoặc `truncate` nếu base prompt quá lớn |
 
 Budget được enforce trên prompt cuối đã assemble:
@@ -110,12 +107,14 @@ tự nó vượt target, tool sẽ reject với báo cáo rõ, trừ khi bật
   "memory_top_k": 4,
   "graph_expand": true,
   "compress": true,
-  "target_ratio": 0.2
+  "max_prompt_tokens": 4000
 }
 ```
 
 #### `reindex_paths`
-Force re-chunk và re-index các path chỉ định. Dùng sau khi sửa file lớn.
+Force re-chunk và re-index các path chỉ định. Chunks cũ của path được thay thế,
+toàn bộ vector index được rebuild trên cùng embedding basis, và retrieval cache
+được xóa để không trả context cũ.
 
 **Use case:** vừa refactor hoặc tạo file mới, cần index lại để lần `retrieve_context` sau thấy nội dung mới.
 
@@ -127,7 +126,7 @@ Force re-chunk và re-index các path chỉ định. Dùng sau khi sửa file l�
 ```
 
 #### `invalidate_cache`
-Xóa TTL retrieval cache. Dùng khi workspace thay đổi nhiều.
+Xóa TTL retrieval cache. Cache cũng tự miss khi fingerprint của file/folder thay đổi.
 
 **Use case:** kết quả retrieval cũ không còn đúng vì vừa đổi nhiều file hoặc đổi nhánh.
 
@@ -140,46 +139,37 @@ Xóa TTL retrieval cache. Dùng khi workspace thay đổi nhiều.
 
 ### 💬 Conversation
 
-#### `compact_conversation`
-> Nén lịch sử hội thoại — auto-detect OpenAI / Anthropic / Gemini format.
+#### `handoff_conversation`
+> Tự quyết định handoff khi lịch sử dài mà **không nén hoặc thay đổi message**.
 
-- Thay thế các turns cũ bằng `<conversation_summary>` XML block
-- Giữ nguyên **N turns gần nhất** (default: 2)
-- Tiết kiệm **40–70% tokens** trong conversation dài
+- Mặc định handoff từ `30,000` token, theo session budget của project.
+- Dưới ngưỡng, trả `{ "action": "continue" }` và không ghi dữ liệu.
+- Trên ngưỡng, lưu nguyên `messages_json` vào `~/.mcp-harness/handoffs.sqlite3`
+  rồi trả `handoff_id` nhỏ gọn; MCP client tạo task mới.
+- Gọi `restore_conversation_handoff` với ID đó chỉ khi task mới cần đọc lịch sử.
 
-| Param | Default | Mô tả |
-|---|---|---|
-| `messages_json` | — | JSON array của messages |
-| `retain_turns` | `2` | Số turns gần nhất giữ nguyên |
-| `model` | — | Model hint cho summary cap |
-| `max_recent_tool_tokens` | `800` | Cap tool/function output vẫn nằm trong turns được giữ |
-
-`retain_turns=0` hợp lệ và sẽ compact toàn bộ body sau phần
-system/developer prefix. Tool cũng log `before`, `after`, `saved_tokens`,
-và `saved_percent`.
-
-**Use case:**
-- Hội thoại dài nhưng vẫn muốn giữ quyết định, bug đã gặp, tool đã chạy.
-- Trước khi chuyển model hoặc tiếp tục task dài với context gọn hơn.
-- Dùng cho OpenAI / Anthropic / Gemini message arrays mà không cần tự viết formatter riêng.
+MCP server không thể tự tạo task trong Codex; client cần gọi tool này trước mỗi
+turn hoặc theo hook của mình, rồi tạo task mới khi `action` là `handoff`.
 
 **Ví dụ:**
 ```json
 {
-  "messages_json": "[{\"role\":\"user\",\"content\":\"Fix auth bug\"},{\"role\":\"assistant\",\"content\":\"Inspected auth middleware\"},{\"role\":\"user\",\"content\":\"Now optimize login\"},{\"role\":\"assistant\",\"content\":\"Plan ready\"}]",
-  "retain_turns": 1,
-  "model": "gpt-5.5"
+  "messages_json": "[{\"role\":\"user\",\"content\":\"...\"}]",
+  "threshold_tokens": 30000,
+  "label": "release-planning"
 }
 ```
 
----
+#### `restore_conversation_handoff`
+Lấy lại đúng `messages_json` gốc bằng `handoff_id`. Tool này không tóm tắt,
+cắt bớt, hoặc đổi format OpenAI / Anthropic / Gemini.
 
 ### 🧠 Memory
 
 | Tool | Mô tả |
 |---|---|
 | `memory_save` | Lưu knowledge vào memory tier (`episodic` / `semantic` / `procedural`) |
-| `memory_search` | Tìm kiếm bằng semantic similarity |
+| `memory_search` | Tìm kiếm local relevance bằng key, tags và nội dung memory |
 | `memory_inject` | Inject memory entries vào system prompt (không cần RAG) |
 | `memory_delete` | Xóa entry theo key + type |
 | `memory_list` | Liệt kê entries gần nhất |
@@ -190,6 +180,9 @@ và `saved_percent`.
 - `episodic` — sự kiện, lỗi đã gặp, quyết định cụ thể
 - `semantic` — kiến thức, patterns, quy tắc dự án
 - `procedural` — quy trình, workflow, cách làm
+
+Memory được lưu tại `~/.mcp-harness/memory.sqlite3`; có thể đổi vị trí bằng
+biến môi trường `MCP_HARNESS_MEMORY_DB`.
 
 #### `memory_save`
 Lưu một mẩu knowledge vào memory store.
@@ -207,7 +200,8 @@ Lưu một mẩu knowledge vào memory store.
 ```
 
 #### `memory_search`
-Tìm memory bằng semantic similarity.
+Tìm memory theo local TF-IDF/LSA + lexical relevance. `min_sim` được áp dụng
+trước khi inject nên memory không liên quan không đi vào prompt.
 
 **Use case:** kiểm tra repo đã từng có quyết định hoặc ghi chú liên quan trước khi sửa code.
 
@@ -330,7 +324,7 @@ AI assistant
             │
             ├── retrieve_context()
             │   ├── AST Chunker       → chunk file theo cú pháp
-            │   ├── Embedding Engine  → sentence-transformers vectors
+            │   ├── Embedding Engine  → local TF-IDF + LSA vectors (full rebuild khi corpus đổi)
             │   ├── BM25 Index        → sparse keyword scoring
             │   ├── Hybrid Score      → 55% semantic + 20% BM25 + 15% priority/graph
             │   ├── Reranker          → cross-encoder rerank
@@ -339,11 +333,11 @@ AI assistant
             │   ├── Memory Store      → inject relevant memories
             │   └── Assembler         → build final enriched prompt
             │
-            ├── compact_conversation()
-            │   └── Summarizer        → detect format → summarize → inject XML block
+            ├── handoff_conversation()
+            │   └── HandoffStore       → preserve raw JSON → return handoff_id
             │
             └── memory_*()
-                └── MemoryStore (SQLite + LanceDB) → Episodic / Semantic / Procedural
+                └── MemoryStore (SQLite) → Episodic / Semantic / Procedural
 ```
 
 ---
@@ -398,5 +392,5 @@ cd Harness-context-engineering
 
 - Log file chính: `~/.mcp-harness/harness-v3.log`
 - Legacy symlink: `~/.gemini/mcp-harness-v3.log` vẫn được tạo tự động nếu hệ thống cho phép
-- Config path `~/.gemini/antigravity/mcp_config.json` phải trỏ đến `server.py` (không phải file cũ `compact_conversation_history.py`)
+- Config path `~/.gemini/antigravity/mcp_config.json` phải trỏ đến `server.py` (không phải legacy script)
 - Server tự động load model embeddings khi khởi động lần đầu (có thể mất vài giây)

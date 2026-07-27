@@ -1,4 +1,4 @@
-# CLAUDE.md — Claude's Rules of Engagement
+# AGENTS.md — Codex's Rules of Engagement
 
 These rules apply to every task in this project unless explicitly overridden.
 Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.

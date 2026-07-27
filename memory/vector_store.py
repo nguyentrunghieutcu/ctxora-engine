@@ -22,6 +22,16 @@ class VectorStore:
         self._paths: list[str] = []
         self._matrix: np.ndarray | None = None  # shape (N, D)
 
+    def clear(self) -> None:
+        self._ids.clear()
+        self._paths.clear()
+        self._matrix = None
+
+    def rebuild(self, chunks: list) -> None:
+        """Replace the full index so every vector shares one embedding basis."""
+        self.clear()
+        self.upsert(chunks)
+
     # ── Helpers ──────────────────────────────────────────────────────────────
 
     def _index_of(self, id_: str) -> int | None:

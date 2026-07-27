@@ -5,7 +5,8 @@ Context Orchestration + Mini-RAG Engine
 
 MCP Tools exposed:
   retrieve_context       — hybrid retrieval (semantic + BM25 + graph)
-  compact_conversation   — auto-format compact with summary injection
+  handoff_conversation   — no-compression history handoff
+  restore_conversation_handoff — restore a raw handoff payload
   memory_save            — save to episodic / semantic / procedural memory
   memory_search          — search across memory tiers
   memory_inject          — inject relevant memory into prompt
@@ -18,7 +19,8 @@ MCP Tools exposed:
 """
 
 from __future__ import annotations
-from compact.summarizer import compact_messages
+from copy import deepcopy
+from compact.handoff import ConversationHandoffStore, DEFAULT_HANDOFF_THRESHOLD_TOKENS
 from context.sanitizer import sanitize, sanitize_chunks
 from context.assembler import ContextAssembler
 from context.budgeting import get_budget
@@ -81,24 +83,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("harness.server")
 
-
-def _summary_token_count(messages: list[dict]) -> int:
-    """Count tokens in the generated conversation summary, if present."""
-    for message in messages:
-        content = message.get("content")
-        if isinstance(content, str) and "<conversation_summary>" in content:
-            return count_tokens(content)
-
-        parts = message.get("parts")
-        if isinstance(parts, list):
-            for part in parts:
-                if not isinstance(part, dict):
-                    continue
-                text = part.get("text")
-                if isinstance(text, str) and "<conversation_summary>" in text:
-                    return count_tokens(text)
-
-    return 0
+DEFAULT_MAX_PROMPT_TOKENS = 4_000
+DEFAULT_INCLUDE_REPORT = False
 
 
 def _coerce_target_ratio(target_ratio: float) -> float:
@@ -346,9 +332,6 @@ def _truncate_to_tokens(text: str, max_tokens: int) -> str:
         return text[:max_tokens * 3]
 
 
-def _messages_token_count(messages: list[dict]) -> int:
-    return count_tokens(json.dumps(messages, ensure_ascii=False))
-
 # ── Singletons ──────────────────────────────────────────────────────────
 mcp = FastMCP("Harness context engineering")
 embedder = EmbeddingEngine()
@@ -358,6 +341,7 @@ graph = DependencyGraph()
 cache = RetrievalCache(ttl=600)
 chunker = ASTChunker()
 compressor = ContextCompressor()
+handoff_store = ConversationHandoffStore()
 vec_store = VectorStore()
 assembler = ContextAssembler()
 mem_store = MemoryStore.instance()
@@ -365,9 +349,40 @@ episodic = EpisodicMemory(mem_store)
 semantic = SemanticMemory(mem_store)
 procedural = ProceduralMemory(mem_store)
 
-# ── In-memory chunk index (rebuilt on each retrieve call for new paths) ─
+# ── In-memory chunk index ───────────────────────────────────────────────
 _indexed_paths: set[str] = set()
+_indexed_fingerprints: dict[str, str] = {}
 _all_chunks: list[Chunk] = []
+
+
+def _normalise_path(path: str) -> str:
+    return os.path.abspath(path)
+
+
+def _chunk_belongs_to_path(chunk: Chunk, source_path: str) -> bool:
+    """Return whether a chunk must be replaced when source_path is reindexed."""
+    chunk_path = _normalise_path(chunk.path)
+    root = _normalise_path(source_path)
+    if os.path.isdir(root) or any(
+        _normalise_path(existing.path).startswith(f"{root}{os.sep}")
+        for existing in _all_chunks
+    ):
+        try:
+            return os.path.commonpath([chunk_path, root]) == root
+        except ValueError:
+            return False
+    return chunk_path == root
+
+
+def _rebuild_indexes() -> None:
+    """Rebuild every derived index from the canonical chunk list atomically."""
+    texts = [chunk.content[:512] for chunk in _all_chunks]
+    vectors = embedder.rebuild(texts)
+    for chunk, vector in zip(_all_chunks, vectors):
+        chunk.embedding = vector
+    vec_store.rebuild(_all_chunks)
+    bm25.build(_all_chunks)
+    graph.build(_all_chunks)
 
 
 def _ensure_indexed(
@@ -377,38 +392,39 @@ def _ensure_indexed(
     Build/update the chunk index for the given paths.
     Skips paths already indexed unless force_reindex=True.
     """
-    new_paths = [p for p in paths if p not in _indexed_paths or force_reindex]
+    new_paths = []
+    for path in paths:
+        normalised = _normalise_path(path)
+        fingerprint = cache.path_fingerprint(path)
+        if (
+            force_reindex
+            or normalised not in _indexed_paths
+            or _indexed_fingerprints.get(normalised) != fingerprint
+        ):
+            new_paths.append(path)
     if not new_paths and _all_chunks:
         return _all_chunks
 
     t0 = time.time()
     chunks = chunker.chunk_paths(new_paths)
-
-    if not chunks:
-        return _all_chunks
-
-    # Safety: sanitize before indexing
     sanitize_chunks(chunks)
 
-    # Embed all chunks in batch
-    texts = [c.content[:512] for c in chunks]
-    vecs = embedder.embed_batch(texts)
-    for c, v in zip(chunks, vecs):
-        c.embedding = v
-
-    # Update vector store
-    vec_store.upsert(chunks)
-
-    # Update BM25 index (full rebuild over all chunks)
+    # Remove stale chunks before adding replacements. This handles changed and
+    # deleted files without accumulating duplicate UUID-based chunk records.
+    _all_chunks[:] = [
+        chunk for chunk in _all_chunks
+        if not any(_chunk_belongs_to_path(chunk, path) for path in new_paths)
+    ]
     _all_chunks.extend(chunks)
-    bm25.build(_all_chunks)
+    _rebuild_indexes()
 
-    # Update dependency graph
-    graph.build(_all_chunks)
-
-    _indexed_paths.update(new_paths)
+    for path in new_paths:
+        normalised = _normalise_path(path)
+        _indexed_paths.add(normalised)
+        _indexed_fingerprints[normalised] = cache.path_fingerprint(path)
+    cache.invalidate_all()
     logger.info(
-        f"[Server] indexed {len(chunks)} new chunks in "
+        f"[Server] refreshed {len(chunks)} chunks in "
         f"{time.time() - t0:.1f}s | total={len(_all_chunks)}")
     return _all_chunks
 
@@ -432,8 +448,8 @@ def retrieve_context(
     compress: bool = True,
     force_reindex: bool = False,
     target_ratio: float = 0.20,
-    max_prompt_tokens: int = 0,
-    include_report: bool = True,
+    max_prompt_tokens: int = DEFAULT_MAX_PROMPT_TOKENS,
+    include_report: bool = DEFAULT_INCLUDE_REPORT,
     base_prompt_policy: str = "reject",
 ) -> str:
     """
@@ -456,8 +472,9 @@ def retrieve_context(
     :param force_reindex:  Force re-chunking even for already-indexed paths.
     :param target_ratio:   Max share of model context window for final prompt.
                             Ignored when max_prompt_tokens > 0.
-    :param max_prompt_tokens: Absolute final prompt cap. 0 uses target_ratio.
-    :param include_report: Prepend compact token savings report to output.
+    :param max_prompt_tokens: Absolute final prompt cap. Defaults to 4,000;
+                              pass 0 to use target_ratio instead.
+    :param include_report: Prepend token telemetry only when explicitly enabled.
     :param base_prompt_policy: "reject" or "truncate" if base_prompt alone
                                exceeds the global cap.
     """
@@ -474,14 +491,20 @@ def retrieve_context(
             f"inject={budget.inject_budget:,} target={target_tokens:,}")
         logger.info(f"retrieve_context | query={query[:100]!r} | paths={paths}")
 
-        # ── 1. Cache check ───────────────────────────────────────────────────
-        cached = cache.get(query, paths)
+        # ── 1. Refresh the canonical index before looking up cached selections.
+        # A source fingerprint change invalidates cache and refreshes its chunks.
+        all_chunks = _ensure_indexed(paths, force_reindex)
+        cache_options = {
+            "retrieve_top_n": retrieve_top_n,
+            "rerank_top_k": rerank_top_k,
+            "graph_expand": graph_expand,
+        }
+        cached = None if force_reindex else cache.get(query, paths, cache_options)
         if cached:
             logger.info(f"  [Cache HIT] {len(cached)} chunks")
             final_chunks = cached
         else:
-            # ── 2. Index / retrieve ──────────────────────────────────────────
-            all_chunks = _ensure_indexed(paths, force_reindex)
+            # ── 2. Retrieve from the fresh index ──────────────────────────────
             if not all_chunks:
                 logger.info("  No chunks indexed from provided paths")
                 final_chunks = []
@@ -533,8 +556,10 @@ def retrieve_context(
                             e._score = 0.3   # type: ignore[attr-defined]
                             reranked.append(e)
 
-                final_chunks = reranked
-                cache.set(query, paths, final_chunks)
+                # Cache raw copies. Compression below is presentation-specific
+                # and must never mutate the source index or a cache entry.
+                cache.set(query, paths, reranked, cache_options)
+                final_chunks = deepcopy(reranked)
 
         # ── 6. Compress candidates (before budget enforcement) ───────────────
         # Compress first so budget is enforced on ACTUAL output token counts,
@@ -595,52 +620,43 @@ def retrieve_context(
 
 
 @mcp.tool()
-def compact_conversation(
+def handoff_conversation(
     messages_json: str,
-    retain_turns: int = 2,
-    model: str = "",
-    max_recent_tool_tokens: int = 800,
+    threshold_tokens: int = DEFAULT_HANDOFF_THRESHOLD_TOKENS,
+    label: str = "",
 ) -> str:
     """
-    Compact conversation history with structured summary injection.
-    Auto-detects OpenAI / Anthropic / Gemini format.
-    Replaces old turns with <conversation_summary> XML block.
+    Prepare an automatic no-compression handoff when history is too long.
 
-    :param messages_json: JSON array of messages.
-    :param retain_turns:  Number of recent turns to keep intact (default 2).
-                          0 is allowed and compacts the full non-prefix body.
-    :param model:         Model hint for provider-specific formatting
-                          (e.g. "gpt-4o", "codex-mini-latest", "o3",
-                           "claude-sonnet-4", "gemini-2.5-pro").
-    :param max_recent_tool_tokens: Cap retained OpenAI tool/function payloads.
+    The original provider-format JSON is stored unchanged only after the token
+    threshold is reached. The MCP client creates the fresh task and can call
+    restore_conversation_handoff with the returned ID when it needs history.
+
+    :param messages_json: Original OpenAI, Anthropic, or Gemini message array.
+    :param threshold_tokens: Handoff threshold; defaults to the 30,000-token
+                             project session budget.
+    :param label: Optional client-visible label for the handoff record.
     """
     try:
-        try:
-            before_messages = json.loads(messages_json)
-            before_tokens = (
-                _messages_token_count(before_messages)
-                if isinstance(before_messages, list) else 0
-            )
-        except (json.JSONDecodeError, ValueError):
-            before_tokens = 0
-
-        result = compact_messages(
-            messages_json,
-            retain_turns,
-            model=model,
-            max_recent_tool_tokens=max_recent_tool_tokens,
-        )
-        after_tokens = _messages_token_count(result)
-        saved_tokens = max(before_tokens - after_tokens, 0)
-        saved_percent = (
-            round(saved_tokens * 100 / before_tokens, 1)
-            if before_tokens > 0 else 0.0
-        )
+        result = handoff_store.prepare(messages_json, threshold_tokens, label)
         logger.info(
-            f"compact_messages | retain_turns={retain_turns} | "
-            f"summary_tokens={_summary_token_count(result):,} | "
-            f"before={before_tokens:,} after={after_tokens:,} "
-            f"saved={saved_tokens:,} saved_percent={saved_percent}%")
+            "handoff_conversation | "
+            f"action={result['action']} tokens={result['history_tokens']:,} "
+            f"threshold={result['threshold_tokens']:,}"
+        )
+        return json.dumps(result, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"  ❌ {e}")
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def restore_conversation_handoff(handoff_id: str) -> str:
+    """Restore an explicitly requested, unmodified conversation handoff."""
+    try:
+        result = handoff_store.restore(handoff_id)
+        if result is None:
+            return f"Error: handoff not found: {handoff_id}"
         return json.dumps(result, ensure_ascii=False)
     except Exception as e:
         logger.error(f"  ❌ {e}")
@@ -717,8 +733,8 @@ def memory_inject(
     output_mode: str = "concise",
     model: str = "claude-sonnet-4",
     target_ratio: float = 0.20,
-    max_prompt_tokens: int = 0,
-    include_report: bool = True,
+    max_prompt_tokens: int = DEFAULT_MAX_PROMPT_TOKENS,
+    include_report: bool = DEFAULT_INCLUDE_REPORT,
     base_prompt_policy: str = "reject",
 ) -> str:
     """
@@ -732,8 +748,9 @@ def memory_inject(
     :param output_mode:  "concise" | "structured" | "code_only" | "minimal"
     :param model:        Target model for format selection.
     :param target_ratio: Max share of model context window for final prompt.
-    :param max_prompt_tokens: Absolute final prompt cap. 0 uses target_ratio.
-    :param include_report: Prepend compact token savings report to output.
+    :param max_prompt_tokens: Absolute final prompt cap. Defaults to 4,000;
+                              pass 0 to use target_ratio instead.
+    :param include_report: Prepend token telemetry only when explicitly enabled.
     :param base_prompt_policy: "reject" or "truncate" for oversized base_prompt.
     """
     try:
@@ -910,7 +927,8 @@ if __name__ == "__main__":
     logger.info(f"  Log (primary) : {LOG_FILE}")
     logger.info(f"  Log (legacy)  : {_LEGACY_LINK}  → symlink")
     logger.info(f"  tail -f {LOG_FILE}")
-    logger.info("  Tools  : retrieve_context · compact_conversation")
+    logger.info("  Tools  : retrieve_context · handoff_conversation")
+    logger.info("           restore_conversation_handoff")
     logger.info("           memory_save · memory_search · memory_inject")
     logger.info(
         "           memory_delete · memory_list · memory_evict · memory_stats")
