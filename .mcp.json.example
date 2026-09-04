@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ctxora": {
+      "command": "ctxora",
+      "args": ["run", "--workspace", "/absolute/path/to/project", "--transport", "stdio"],
+      "env": {
+        "CTXORA_ALLOWED_ROOTS": "/absolute/path/to/project",
+        "PYTHONUTF8": "1"
+      }
+    }
+  }
+}

@@ -1,0 +1,62 @@
+name: CI
+on: [push, pull_request]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Restore local snapshots
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        id: snapshot-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .ctxora/state/snapshots
+            .ctxora/state/active.json
+            .ctxora/state/active.previous.json
+            .ctxora/state/schema.json
+          key: ctxora-snapshots-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements.lock', 'src/**/*.py') }}
+          restore-keys: ctxora-snapshots-${{ runner.os }}-py${{ matrix.python-version }}-
+      - run: python -m pip install -e '.[dev]'
+      - run: ruff check .
+      - name: Audit release topology and OSS independence
+        run: python scripts/audit_topology.py
+      - name: Unit, security, evaluation, E2E, and packaging gates
+        run: python -m unittest discover -s tests -t . -v
+      - name: Machine-readable release quality gate
+        run: python -m evaluation.gates
+      - name: Compile all Python sources
+        run: python -m compileall -q src tests scripts
+      - name: Reject generated or unstaged CI changes
+        run: git diff --exit-code
+      - name: Write machine-readable health report
+        if: always()
+        run: ctxora doctor --workspace . > health-report.json
+      - name: Save local snapshots
+        if: success() && steps.snapshot-cache.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .ctxora/state/snapshots
+            .ctxora/state/active.json
+            .ctxora/state/active.previous.json
+            .ctxora/state/schema.json
+          key: ctxora-snapshots-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements.lock', 'src/**/*.py') }}
+      - name: Upload health report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-py${{ matrix.python-version }}
+          path: health-report.json

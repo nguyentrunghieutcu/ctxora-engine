@@ -1,6 +1,5 @@
-[mcp_servers.harness-context-optimizer]
-command = "/Users/hieu/Workspaces/Projects/Modoro/compact-token/.venv/bin/python"
-args = ["/Users/hieu/Workspaces/Projects/Modoro/compact-token/server.py"]
+[mcp_servers.ctxora]
+command = "ctxora-mcp"
 
-[mcp_servers.harness-context-optimizer.env]
+[mcp_servers.ctxora.env]
 PYTHONUTF8 = "1"

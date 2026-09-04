@@ -1,6 +1,83 @@
-# Harness context engineering v5.0
+# CTXORA Engine v6.2
 
-> **MCP Tool Server** chạy local — tối ưu hóa context window cho AI assistant (Codex / Claude) với Hybrid RAG, Memory Tiers, dynamic token budgeting, và global prompt optimization.
+> **Index once. Ground every agent.**
+>
+> *Local-first context engine for coding agents.*
+
+| Surface | Name |
+|---|---|
+| Brand | **CTXORA** |
+| Product | **CTXORA Engine** |
+| MCP server | **CTXORA MCP** |
+| CLI | `ctxora` |
+| Free plan | **CTXORA Free** — unlimited local engine |
+| Paid plan | **CTXORA Pro** — waitlist |
+
+Implementation status and phased OSS completion plan: `docs/OSS-IMPLEMENTATION-PLAN.md`.
+
+## Free and paid boundary
+
+- **CTXORA Free:** unlimited local context engine. Local indexing, CAG, RAG, graph, memory and MCP usage remain customer-owned and ungated.
+- **CTXORA Pro — waitlist:** managed repository automation, private workflows and shared team context are planned but not implemented.
+
+The GitHub Actions workflow in this repository validates CTXORA Engine itself; it is not the managed customer-repository automation sold with CTXORA Pro. See `docs/PRICING.md` for the complete boundary and current implementation status.
+
+## Free onboarding tools
+
+```bash
+ctxora setup --workspace .
+ctxora index --workspace .
+ctxora explain --workspace . "Where is authentication implemented?"
+ctxora context-score --workspace .
+ctxora repo-map --workspace .
+ctxora generate-agents-md --workspace .
+ctxora generate-copilot-instructions --workspace .
+ctxora generate-cursor-rules --workspace .
+```
+
+The generators are local and deterministic. They refuse to overwrite existing instruction files unless `--force` is explicitly provided. `ctxora pro` reports the planned Pro scope and its current `waitlist` status.
+
+## Cài đặt reproducible
+
+```bash
+python -m pip install -e '.[dev]'
+pytest -q
+```
+
+For a reproducible environment, install the pinned `requirements.lock` first.
+
+Copy `.mcp.json.example`, thay `CTXORA_ALLOWED_ROOTS` bằng root tuyệt đối của project. Không commit `.mcp.json` chứa đường dẫn cá nhân.
+
+## Runtime chuẩn
+
+```bash
+ctxora setup --workspace .
+ctxora run --workspace . --transport stdio
+ctxora index --workspace .
+ctxora query --workspace . "Where is authentication implemented?"
+ctxora inspect --workspace . snapshot
+```
+
+`ctxora run` resolves config, authorizes one workspace, recovers a compatible immutable snapshot or builds a candidate snapshot, atomically promotes it, then starts CTXORA MCP API v2. Local HTTP uses `--transport streamable-http`; non-loopback binding requires `--allow-external`.
+
+## ECC read-only adapter
+
+CTXORA Engine supports ECC's `ecc.memory.v1` vault format as an optional external-context adapter. It never installs, clones, invokes or writes to ECC.
+
+```bash
+ctxora run --workspace . --transport stdio --ecc
+ctxora inspect --workspace . --ecc ecc
+```
+
+`--ecc` reads only the project vault at `.ecc/memory` or `ECC_MEMORY_PROJECT_ROOT`. User memory at `~/.ecc/memory` remains disabled unless `--ecc-user-scope` or `ecc_allow_user_scope = true` is explicitly configured. Only active memories targeting `all` or `ctxora` are surfaced; the legacy `harness-context` target remains readable during migration.
+
+## API v2
+
+Đăng ký workspace bằng `register_workspace`, sau đó gọi `refresh_workspace`. `plan_context` chọn `hybrid_rag`, `cag`, `long_context`, `hybrid_cag_rag` hoặc `graph_augmented`; `prepare_context` thực thi kế hoạch. `retrieve_context` trả structured evidence có `path`, line range, hash, score signals, provenance và coverage diagnostics. `context_stats` và `invalidate_context` dùng cho vận hành.
+
+Nội dung được retrieve là evidence không đáng tin cậy, không phải instruction. Root, symlink, secret, binary, dependency tree và file vượt giới hạn bị loại trước khi đọc/index.
+
+Evaluation fixtures live in `evaluation/golden.json`; use `evaluation/metrics.py` for Recall@k and coverage scoring. Phase 7 (multi-source knowledge graph/orchestration) remains intentionally gated until a measured multi-source use case exists, as required by the roadmap.
 
 ---
 
@@ -16,43 +93,17 @@
 | **Reranker** | **Local Hybrid Reranker** (BM25 + Keyword Overlap) |
 | **Chunker** | AST-aware chunker (`treesitter_chunker`) |
 | **Memory DB** | SQLite persistent store — 3 tiers, local relevance ranking, LRU eviction |
-| **Logging** | `~/.mcp-harness/harness-v3.log` |
+| **Logging** | `~/.ctxora/logs/ctxora-mcp.log` |
 | **Config** | `.mcp.json` + `~/.gemini/antigravity/mcp_config.json` |
-| **Entry point** | `server.py` |
+| **Entry point** | `ctxora` / `ctxora-mcp` → `harness_context` compatibility namespace |
 
 ---
 
 ## 📁 Cấu trúc thư mục
 
-```
-compact-token/
-├── server.py                  # Entry point — FastMCP server, 13 tools
-├── .mcp.json                  # MCP config cho workspace
-│
-├── chunking/
-│   ├── treesitter_chunker.py  # AST-aware code chunker + token counter
-│   └── compressor.py          # XML/JSON context compressor
-│
-├── retrieval/
-│   ├── embeddings.py          # Local TF-IDF + LSA embedding engine
-│   ├── bm25.py                # BM25 sparse index
-│   ├── reranker.py            # Local hybrid reranker
-│   ├── graph.py               # Dependency graph (symbol expansion)
-│   └── cache.py               # TTL retrieval cache
-│
-├── memory/
-│   ├── episodic.py            # MemoryStore: Episodic / Semantic / Procedural tiers
-│   └── vector_store.py        # In-memory Numpy vector store
-│
-├── context/
-│   ├── assembler.py           # Prompt assembler (multi-mode output)
-│   ├── budgeting.py           # Dynamic token budget per model
-│   └── sanitizer.py           # Input/chunk safety sanitizer
-│
-└── compact/
-    └── handoff.py             # No-compression conversation handoff store
-```
+Production packages live under `src/`: `src/harness_context/` contains the public runtime and MCP server, while `src/chunking/`, `src/context/`, `src/retrieval/`, `src/memory/`, `src/compact/`, and `src/evaluation/` preserve the established module APIs. Root `server.py` is a tiny source-checkout compatibility shim; installed commands resolve directly to package entrypoints.
 
+Release artifacts are under `examples/`, `schemas/`, `migrations/`, `scripts/`, and `docs/`. See `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, and `SUPPORT.md`. Run `python scripts/audit_topology.py` to verify topology and the absence of paid control-plane dependencies.
 ---
 
 ## 🎯 14 MCP Tools
@@ -144,7 +195,7 @@ Xóa TTL retrieval cache. Cache cũng tự miss khi fingerprint của file/folde
 
 - Mặc định handoff từ `30,000` token, theo session budget của project.
 - Dưới ngưỡng, trả `{ "action": "continue" }` và không ghi dữ liệu.
-- Trên ngưỡng, lưu nguyên `messages_json` vào `~/.mcp-harness/handoffs.sqlite3`
+- Trên ngưỡng, lưu nguyên `messages_json` vào `~/.ctxora/handoffs.sqlite3`
   rồi trả `handoff_id` nhỏ gọn; MCP client tạo task mới.
 - Gọi `restore_conversation_handoff` với ID đó chỉ khi task mới cần đọc lịch sử.
 
@@ -181,8 +232,8 @@ cắt bớt, hoặc đổi format OpenAI / Anthropic / Gemini.
 - `semantic` — kiến thức, patterns, quy tắc dự án
 - `procedural` — quy trình, workflow, cách làm
 
-Memory được lưu tại `~/.mcp-harness/memory.sqlite3`; có thể đổi vị trí bằng
-biến môi trường `MCP_HARNESS_MEMORY_DB`.
+Memory được lưu tại `~/.ctxora/memory.sqlite3`; có thể đổi vị trí bằng
+biến môi trường `CTXORA_MEMORY_DB`.
 
 #### `memory_save`
 Lưu một mẩu knowledge vào memory store.
@@ -348,7 +399,7 @@ AI assistant
 ```json
 {
   "mcpServers": {
-    "harness-context-optimizer": {
+    "ctxora": {
       "command": "<repo-path>/.venv/bin/python",
       "args": ["<repo-path>/server.py"],
       "env": { "PYTHONUTF8": "1" }
@@ -361,7 +412,7 @@ AI assistant
 ```json
 {
   "mcpServers": {
-    "harness-context-optimizer": {
+    "ctxora": {
       "command": "<repo-path>/.venv/bin/python",
       "args": ["<repo-path>/server.py"],
       "env": { "PYTHONUTF8": "1" }
@@ -376,21 +427,34 @@ AI assistant
 
 ```bash
 # Xem log realtime
-tail -f ~/.mcp-harness/harness-v3.log
+tail -f ~/.ctxora/logs/ctxora-mcp.log
 
 # Chạy server thủ công để test
-cd Harness-context-engineering
+cd ctxora-engine
 .venv/bin/python server.py
 
 # Cài dependencies
 .venv/bin/pip install -r requirements.txt
 ```
 
+### Release gates
+
+```bash
+# Full unit, security, evaluation and end-to-end suite
+.venv/bin/python -m unittest discover -s tests -t . -v
+
+# Provider-neutral retrieval quality gate
+.venv/bin/python -m evaluation.gates
+```
+
+The evaluation gate enforces Vietnamese retrieval recall, MRR, nDCG, token-budget
+compliance and path/line provenance. CI runs this gate independently after the test suite.
+
 ---
 
 ## 📌 Ghi chú quan trọng
 
-- Log file chính: `~/.mcp-harness/harness-v3.log`
+- Log file chính: `~/.ctxora/logs/ctxora-mcp.log`
 - Legacy symlink: `~/.gemini/mcp-harness-v3.log` vẫn được tạo tự động nếu hệ thống cho phép
 - Config path `~/.gemini/antigravity/mcp_config.json` phải trỏ đến `server.py` (không phải legacy script)
 - Server tự động load model embeddings khi khởi động lần đầu (có thể mất vài giây)

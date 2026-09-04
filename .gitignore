@@ -12,6 +12,10 @@ env/
 # Local configuration and history
 .mcp.json
 .history/
+.harness/state/
+.harness/run.pid
+.harness/runtime.log
+.ctxora/
 .env
 .env.*
 

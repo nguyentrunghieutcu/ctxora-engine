@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "available_input_tokens": {
+      "type": "integer"
+    },
+    "query": {
+      "type": "string"
+    },
+    "strategy_override": {
+      "type": "string"
+    },
+    "workspace_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "workspace_id",
+    "query",
+    "available_input_tokens"
+  ],
+  "type": "object"
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "available_input_tokens": {
+      "type": "integer"
+    },
+    "deadline_ms": {
+      "type": "integer"
+    },
+    "freshness": {
+      "type": "string"
+    },
+    "handoff_id": {
+      "type": "string"
+    },
+    "include_ecc": {
+      "type": "boolean"
+    },
+    "include_handoff": {
+      "type": "boolean"
+    },
+    "include_memory": {
+      "type": "boolean"
+    },
+    "preferred_strategy": {
+      "type": "string"
+    },
+    "query": {
+      "type": "string"
+    },
+    "workspace_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "workspace_id",
+    "query",
+    "available_input_tokens"
+  ],
+  "type": "object"
+}

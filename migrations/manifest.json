@@ -1,0 +1,7 @@
+{
+  "current_version": 2,
+  "migrations": [
+    {"version": 1, "name": "create immutable snapshot storage", "rollback": false},
+    {"version": 2, "name": "create candidate build storage", "rollback": true}
+  ]
+}

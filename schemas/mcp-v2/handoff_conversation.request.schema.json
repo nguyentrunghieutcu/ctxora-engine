@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "consent": {
+      "type": "boolean"
+    },
+    "label": {
+      "type": "string"
+    },
+    "messages_json": {
+      "type": "string"
+    },
+    "retention_seconds": {
+      "type": "integer"
+    },
+    "threshold_tokens": {
+      "type": "integer"
+    },
+    "workspace_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "workspace_id",
+    "messages_json"
+  ],
+  "type": "object"
+}

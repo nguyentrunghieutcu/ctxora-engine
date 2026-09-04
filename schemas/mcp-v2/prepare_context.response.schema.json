@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "api_version": {
+      "type": "string"
+    },
+    "diagnostics": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "evidence": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "external_context": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "handoff": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "memory": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "plan": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "snapshot_id": {
+      "type": "string"
+    },
+    "snapshot_version": {
+      "type": "integer"
+    },
+    "stable_context": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "workspace_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "api_version",
+    "workspace_id",
+    "snapshot_id",
+    "snapshot_version",
+    "plan",
+    "stable_context",
+    "evidence",
+    "memory",
+    "handoff",
+    "external_context",
+    "diagnostics"
+  ],
+  "type": "object"
+}

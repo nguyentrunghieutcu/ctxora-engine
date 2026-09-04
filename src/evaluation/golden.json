@@ -1,0 +1,5 @@
+[
+  {"id":"vi-auth","tier":"symbol","query":"Tìm logic xoay refresh token","expected_symbols":["refresh_token"],"expected_paths":["auth.py"]},
+  {"id":"caller","query":"Who calls refresh_token?","expected_symbols":["refresh_token"],"expected_paths":["auth.py"]},
+  {"id":"tests","query":"Find tests for authentication","expected_symbols":[],"expected_paths":["test_auth.py"]}
+]
