@@ -7,6 +7,8 @@
 **Context engine local-first dành cho coding agent.**
 
 [![CI](https://github.com/nguyentrunghieutcu/ctxora-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/nguyentrunghieutcu/ctxora-engine/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/ctxora?logo=npm)](https://www.npmjs.com/package/ctxora)
+[![skills.sh](https://skills.sh/b/nguyentrunghieutcu/ctxora-engine)](https://skills.sh/nguyentrunghieutcu/ctxora-engine)
 [![Python](https://img.shields.io/badge/Python-3.10--3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
 [![Local first](https://img.shields.io/badge/Context-local--first-7c3aed)](#quyền-riêng-tư-và-bảo-mật)
@@ -14,25 +16,21 @@
 
 [English](README.md) · **Tiếng Việt**
 
-[Bắt đầu nhanh](#bắt-đầu-nhanh) · [Tính năng](#bạn-nhận-được-gì) · [CLI](#tham-chiếu-cli) · [MCP](#mcp-tools) · [Bảo mật](#quyền-riêng-tư-và-bảo-mật)
+[Bắt đầu nhanh](#bắt-đầu-nhanh) · [Cài đặt](#cài-đặt) · [Agent skills](#agent-skills) · [CLI](#tham-chiếu-cli) · [MCP](#mcp-tools) · [Bảo mật](#quyền-riêng-tư-và-bảo-mật)
 
 </div>
 
 > [!IMPORTANT]
-> **Nguồn chính thức:** chỉ cài CTXORA Engine từ repository này. Gói `ctxora-engine` hiện chưa được phát hành trên PyPI. Các package bên thứ ba sử dụng tên CTXORA không được dự án duy trì hoặc kiểm duyệt.
+> **Nguồn chính thức:** dùng package `ctxora` trên npm hoặc GitHub repository này. Gói `ctxora-engine` không được phát hành trên PyPI. Các package bên thứ ba sử dụng tên CTXORA không được dự án duy trì hoặc kiểm duyệt.
 
 CTXORA Engine xây dựng biểu diễn local có thể tái sử dụng của repository và cung cấp đúng evidence cho Codex, Claude Code, Cursor, GitHub Copilot hoặc bất kỳ agent hỗ trợ MCP nào. Source code, index, embedding, graph, memory và handoff đều nằm trên máy của bạn.
 
 ## Bắt đầu nhanh
 
 ```bash
-git clone https://github.com/nguyentrunghieutcu/ctxora-engine.git
-cd ctxora-engine
-python3 -m pip install .
-
-ctxora setup --workspace /duong-dan/toi/project
-ctxora index --workspace /duong-dan/toi/project
-ctxora explain --workspace /duong-dan/toi/project \
+npx ctxora setup --workspace /duong-dan/toi/project
+npx ctxora index --workspace /duong-dan/toi/project
+npx ctxora explain --workspace /duong-dan/toi/project \
   "Authentication được triển khai ở đâu?"
 ```
 
@@ -94,6 +92,22 @@ Các instruction file được sinh theo cách deterministic và không ghi đè
 
 ## Cài đặt
 
+### npm / npx — khuyến nghị
+
+```bash
+npx ctxora setup --workspace /duong-dan/toi/project
+npx ctxora doctor --workspace /duong-dan/toi/project
+```
+
+Npm launcher không có dependency ngoài, đóng gói source Python MIT và cài CTXORA Engine vào environment local theo version. Không cần cài Python package global hoặc tạo cloud account. Máy cần có sẵn Python 3.10–3.13.
+
+Nếu muốn có shell command lâu dài:
+
+```bash
+npm install --global ctxora
+ctxora setup --workspace /duong-dan/toi/project
+```
+
 ### Cài trực tiếp từ GitHub
 
 ```bash
@@ -119,6 +133,23 @@ python -m pip install -e '.[dev]'
 ```
 
 Yêu cầu: Python 3.10–3.13 và Git. Runtime state nằm trong `.ctxora/`; state `.harness/` cũ vẫn đọc được trong giai đoạn migration.
+
+## Agent skills
+
+Cài toàn bộ CTXORA skills từ repository này:
+
+```bash
+npx skills add nguyentrunghieutcu/ctxora-engine
+```
+
+Liệt kê hoặc chỉ cài một skill:
+
+```bash
+npx skills add nguyentrunghieutcu/ctxora-engine --list
+npx skills add nguyentrunghieutcu/ctxora-engine --skill ctxora-setup
+```
+
+Pack gồm các workflow setup, grounded repository context và context health. Phiên bản hiện tại của `skills` CLI yêu cầu Node.js 22.20 trở lên.
 
 ## Kết nối coding agent
 
@@ -336,6 +367,8 @@ src/retrieval/         BM25, local embeddings, graph, reranking, cache
 src/memory/            Local episodic và vector memory
 src/compact/           Provider handoff và compaction helpers
 src/evaluation/        Quality metrics và release gates
+bin/                   npm/npx launcher không có dependency ngoài
+skills/                Coding-agent skills có thể cài đặt
 schemas/mcp-v2/        API v2 JSON Schemas công khai
 tests/                 Unit, security, evaluation, E2E, packaging tests
 scripts/               Install, uninstall, migration, topology audit
@@ -344,6 +377,8 @@ scripts/               Install, uninstall, migration, topology audit
 ## Phát triển và kiểm tra
 
 ```bash
+npm test
+npm pack --dry-run
 ruff check .
 python scripts/audit_topology.py
 python -m unittest discover -s tests -t . -v
@@ -358,11 +393,11 @@ CI matrix chạy Python 3.10, 3.11, 3.12 và 3.13. Evaluation fixture bao gồm 
 
 ### Không tìm thấy `ctxora`
 
-Cài project vào Python environment đang dùng và kiểm tra scripts directory có trong `PATH`:
+Dùng npm launcher mà không cần cài global command:
 
 ```bash
-python3 -m pip install .
-python3 -m pip show ctxora-engine
+npx ctxora --version
+npx ctxora doctor --workspace .
 ```
 
 ### Workspace bị từ chối

@@ -7,6 +7,8 @@
 **Local-first context engine for coding agents.**
 
 [![CI](https://github.com/nguyentrunghieutcu/ctxora-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/nguyentrunghieutcu/ctxora-engine/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/ctxora?logo=npm)](https://www.npmjs.com/package/ctxora)
+[![skills.sh](https://skills.sh/b/nguyentrunghieutcu/ctxora-engine)](https://skills.sh/nguyentrunghieutcu/ctxora-engine)
 [![Python](https://img.shields.io/badge/Python-3.10--3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
 [![Local first](https://img.shields.io/badge/Context-local--first-7c3aed)](#privacy-and-security)
@@ -14,25 +16,21 @@
 
 **English** · [Tiếng Việt](README.vi.md)
 
-[Quick start](#quick-start) · [Features](#what-you-get) · [CLI](#cli-reference) · [MCP](#mcp-tools) · [Security](#privacy-and-security)
+[Quick start](#quick-start) · [Installation](#installation) · [Agent skills](#agent-skills) · [CLI](#cli-reference) · [MCP](#mcp-tools) · [Security](#privacy-and-security)
 
 </div>
 
 > [!IMPORTANT]
-> **Official source:** install CTXORA Engine only from this repository. The `ctxora-engine` package is not published on PyPI yet. Third-party packages using the CTXORA name are not maintained or reviewed by this project.
+> **Official sources:** use the `ctxora` package on npm or this GitHub repository. The `ctxora-engine` package is not published on PyPI. Third-party packages using the CTXORA name are not maintained or reviewed by this project.
 
 CTXORA Engine builds a reusable, local representation of a repository and supplies the right evidence to Codex, Claude Code, Cursor, GitHub Copilot, or any MCP-compatible agent. Source code, indexes, embeddings, graph data, memory, and handoffs remain on your machine.
 
 ## Quick start
 
 ```bash
-git clone https://github.com/nguyentrunghieutcu/ctxora-engine.git
-cd ctxora-engine
-python3 -m pip install .
-
-ctxora setup --workspace /path/to/your/project
-ctxora index --workspace /path/to/your/project
-ctxora explain --workspace /path/to/your/project \
+npx ctxora setup --workspace /path/to/your/project
+npx ctxora index --workspace /path/to/your/project
+npx ctxora explain --workspace /path/to/your/project \
   "Where is authentication implemented?"
 ```
 
@@ -94,6 +92,22 @@ Generated instruction files are deterministic and are never overwritten unless `
 
 ## Installation
 
+### npm / npx — recommended
+
+```bash
+npx ctxora setup --workspace /path/to/your/project
+npx ctxora doctor --workspace /path/to/your/project
+```
+
+The dependency-free npm launcher bundles the MIT-licensed Python source and installs CTXORA Engine into a versioned local environment. It does not require a global Python package or a cloud account. Python 3.10–3.13 must already be available.
+
+For a persistent shell command:
+
+```bash
+npm install --global ctxora
+ctxora setup --workspace /path/to/your/project
+```
+
 ### Install from GitHub
 
 ```bash
@@ -119,6 +133,23 @@ python -m pip install -e '.[dev]'
 ```
 
 Requirements: Python 3.10–3.13 and Git. Runtime state is stored under `.ctxora/`; compatible legacy `.harness/` state remains readable during migration.
+
+## Agent skills
+
+Install all CTXORA skills from this repository:
+
+```bash
+npx skills add nguyentrunghieutcu/ctxora-engine
+```
+
+List or install one skill:
+
+```bash
+npx skills add nguyentrunghieutcu/ctxora-engine --list
+npx skills add nguyentrunghieutcu/ctxora-engine --skill ctxora-setup
+```
+
+The pack includes setup, grounded repository context, and context-health workflows. The current `skills` CLI requires Node.js 22.20 or newer.
 
 ## Connect a coding agent
 
@@ -336,6 +367,8 @@ src/retrieval/         BM25, local embeddings, graph, reranking, cache
 src/memory/            Local episodic and vector memory
 src/compact/           Provider handoff and compaction helpers
 src/evaluation/        Quality metrics and release gates
+bin/                   Dependency-free npm/npx launcher
+skills/                Installable coding-agent skills
 schemas/mcp-v2/        Published API v2 JSON Schemas
 tests/                 Unit, security, evaluation, E2E, packaging tests
 scripts/               Install, uninstall, migration, topology audit
@@ -344,6 +377,8 @@ scripts/               Install, uninstall, migration, topology audit
 ## Development and verification
 
 ```bash
+npm test
+npm pack --dry-run
 ruff check .
 python scripts/audit_topology.py
 python -m unittest discover -s tests -t . -v
@@ -358,11 +393,11 @@ The CI matrix runs on Python 3.10, 3.11, 3.12, and 3.13. Evaluation fixtures cov
 
 ### `ctxora` is not found
 
-Install the project into the active Python environment and verify that its scripts directory is on `PATH`:
+Use the npm launcher without installing a global command:
 
 ```bash
-python3 -m pip install .
-python3 -m pip show ctxora-engine
+npx ctxora --version
+npx ctxora doctor --workspace .
 ```
 
 ### Workspace is rejected

@@ -1,0 +1,45 @@
+{
+  "name": "ctxora",
+  "version": "6.2.0",
+  "description": "Local-first context engine for coding agents.",
+  "type": "module",
+  "bin": {
+    "ctxora": "bin/ctxora.mjs"
+  },
+  "files": [
+    "bin",
+    "src/**/*.py",
+    "pyproject.toml",
+    "README.md",
+    "README.vi.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test tests/npm/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ai-agents",
+    "coding-agents",
+    "context-engineering",
+    "mcp",
+    "rag",
+    "codex",
+    "claude-code",
+    "cursor"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nguyentrunghieutcu/ctxora-engine.git"
+  },
+  "homepage": "https://github.com/nguyentrunghieutcu/ctxora-engine#readme",
+  "bugs": {
+    "url": "https://github.com/nguyentrunghieutcu/ctxora-engine/issues"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -6,6 +6,18 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm test
+      - run: npm pack --dry-run
+      - name: Reject generated or unstaged CI changes
+        run: git diff --exit-code
   test:
     runs-on: ubuntu-latest
     strategy:

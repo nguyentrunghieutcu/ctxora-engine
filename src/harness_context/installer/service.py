@@ -75,9 +75,13 @@ class ClientInstaller:
         return plan
 
     def _server_config(self) -> dict[str, Any]:
+        command = os.environ.get("CTXORA_MCP_COMMAND", CLI_NAME)
+        prefix = json.loads(os.environ.get("CTXORA_MCP_ARGS_PREFIX", "[]"))
+        if not isinstance(prefix, list) or not all(isinstance(item, str) for item in prefix):
+            raise ValueError("CTXORA_MCP_ARGS_PREFIX must be a JSON array of strings")
         return {
-            "command": CLI_NAME,
-            "args": ["run", "--workspace", str(self.workspace), "--transport", "stdio"],
+            "command": command,
+            "args": [*prefix, "run", "--workspace", str(self.workspace), "--transport", "stdio"],
             "env": {"CTXORA_ALLOWED_ROOTS": str(self.workspace), "PYTHONUTF8": "1"},
         }
 
