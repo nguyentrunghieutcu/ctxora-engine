@@ -15,6 +15,7 @@ dependencies = [
   "rank-bm25>=0.2.2,<0.3",
   "scikit-learn>=1.4,<2",
   "tiktoken>=0.7,<1",
+  "tomli>=2,<3; python_version < '3.11'",
   "tree-sitter>=0.22,<0.26",
   "tree-sitter-javascript>=0.23,<0.24",
   "tree-sitter-python>=0.23,<0.24",

@@ -4,7 +4,10 @@ import ast
 import json
 from pathlib import Path
 
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10
+    import tomli as tomllib
 
 REQUIRED_PATHS = (
     "CHANGELOG.md", "SUPPORT.md", "docs/ARCHITECTURE.md", "docs/OPERATIONS.md",
