@@ -1,460 +1,406 @@
-# CTXORA Engine v6.2
+<div align="center">
 
-> **Index once. Ground every agent.**
->
-> *Local-first context engine for coding agents.*
+# CTXORA Engine
 
-| Surface | Name |
-|---|---|
-| Brand | **CTXORA** |
-| Product | **CTXORA Engine** |
-| MCP server | **CTXORA MCP** |
-| CLI | `ctxora` |
-| Free plan | **CTXORA Free** — unlimited local engine |
-| Paid plan | **CTXORA Pro** — waitlist |
+### Index once. Ground every agent.
 
-Public OSS release scope and completed phases: `docs/OSS-IMPLEMENTATION-PLAN.md`.
+**Local-first context engine for coding agents.**
 
-## Free and paid boundary
+[![CI](https://github.com/nguyentrunghieutcu/ctxora-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/nguyentrunghieutcu/ctxora-engine/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.10--3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
+[![Local first](https://img.shields.io/badge/Context-local--first-7c3aed)](#privacy-and-security)
+[![Plan](https://img.shields.io/badge/CTXORA_Free-unlimited-0ea5e9)](docs/PRICING.md)
 
-- **CTXORA Free:** unlimited local context engine. Local indexing, CAG, RAG, graph, memory and MCP usage remain customer-owned and ungated.
-- **CTXORA Pro — waitlist:** managed repository automation, private workflows and shared team context are planned but not implemented.
+**English** · [Tiếng Việt](README.vi.md)
 
-The GitHub Actions workflow in this repository validates CTXORA Engine itself; it is not the managed customer-repository automation sold with CTXORA Pro. See `docs/PRICING.md` for the complete boundary and current implementation status.
+[Quick start](#quick-start) · [Features](#what-you-get) · [CLI](#cli-reference) · [MCP](#mcp-tools) · [Security](#privacy-and-security)
 
-## Free onboarding tools
+</div>
+
+> [!IMPORTANT]
+> **Official source:** install CTXORA Engine only from this repository. The `ctxora-engine` package is not published on PyPI yet. Third-party packages using the CTXORA name are not maintained or reviewed by this project.
+
+CTXORA Engine builds a reusable, local representation of a repository and supplies the right evidence to Codex, Claude Code, Cursor, GitHub Copilot, or any MCP-compatible agent. Source code, indexes, embeddings, graph data, memory, and handoffs remain on your machine.
+
+## Quick start
 
 ```bash
-ctxora setup --workspace .
-ctxora index --workspace .
-ctxora explain --workspace . "Where is authentication implemented?"
-ctxora context-score --workspace .
+git clone https://github.com/nguyentrunghieutcu/ctxora-engine.git
+cd ctxora-engine
+python3 -m pip install .
+
+ctxora setup --workspace /path/to/your/project
+ctxora index --workspace /path/to/your/project
+ctxora explain --workspace /path/to/your/project \
+  "Where is authentication implemented?"
+```
+
+Expected output is structured JSON containing relevant files, symbols, dependency signals, provenance, coverage diagnostics, and recommended tests or conventions when available.
+
+## Why CTXORA?
+
+Coding agents often spend tokens rediscovering a repository, select the wrong layer, miss local conventions, or lose context between sessions. Static instruction files help, but they cannot select task-specific evidence.
+
+CTXORA adds a local context layer:
+
+```text
+Repository
+   ↓ scan, parse, chunk
+Immutable local snapshot
+   ↓ lexical + semantic + symbol + path + graph indexes
+Context planner
+   ↓ CAG / RAG / long context / graph-augmented retrieval
+Codex · Claude Code · Cursor · Copilot · MCP clients
+```
+
+- **Fewer wrong edits** — retrieve the module, dependency path, and tests related to the task.
+- **Less repeated prompting** — reuse repository knowledge across agent sessions.
+- **Agent-neutral context** — one engine serves multiple coding tools.
+- **Private by default** — no hosted index, remote telemetry, or required cloud account.
+- **Deterministic evidence** — every retrieved item includes source path and provenance.
+
+## What you get
+
+### Local context engine
+
+- AST-aware chunking for Python, JavaScript, and TypeScript, with bounded fallback chunking for other text formats.
+- Hybrid lexical and local semantic retrieval using BM25, TF-IDF/LSA, keyword overlap, symbols, and paths.
+- Code dependency graph traversal and graph-augmented context selection.
+- CAG, RAG, hybrid CAG/RAG, long-context, and graph-augmented planning strategies.
+- Immutable snapshots with candidate validation, atomic promotion, recovery, and incremental refresh.
+- Workspace-scoped SQLite memory and raw conversation handoffs.
+- Token budgeting for OpenAI, Anthropic, and Gemini context windows.
+
+### Agent onboarding
+
+```bash
 ctxora repo-map --workspace .
+ctxora context-score --workspace .
 ctxora generate-agents-md --workspace .
 ctxora generate-copilot-instructions --workspace .
 ctxora generate-cursor-rules --workspace .
 ```
 
-The generators are local and deterministic. They refuse to overwrite existing instruction files unless `--force` is explicitly provided. `ctxora pro` reports the planned Pro scope and its current `waitlist` status.
+Generated instruction files are deterministic and are never overwritten unless `--force` is provided.
 
-## Cài đặt reproducible
+### Safety and operations
+
+- Canonical workspace-root authorization and symlink-escape rejection.
+- Secret-like, binary, dependency, VCS, generated-state, and oversized-file exclusions.
+- Retrieved repository content is always treated as untrusted evidence, never as agent instructions.
+- Machine-readable diagnostics, context health reports, evaluation gates, and stable CLI exit codes.
+- Local `ctxora ci` support for indexing changed files between Git refs.
+
+## Installation
+
+### Install from GitHub
 
 ```bash
-python -m pip install -e '.[dev]'
-pytest -q
+python3 -m pip install \
+  "git+https://github.com/nguyentrunghieutcu/ctxora-engine.git"
 ```
 
-For a reproducible environment, install the pinned `requirements.lock` first.
+### Install from a clone
 
-Copy `.mcp.json.example`, thay `CTXORA_ALLOWED_ROOTS` bằng root tuyệt đối của project. Không commit `.mcp.json` chứa đường dẫn cá nhân.
+```bash
+git clone https://github.com/nguyentrunghieutcu/ctxora-engine.git
+cd ctxora-engine
+python3 -m pip install .
+ctxora doctor --workspace .
+```
 
-## Runtime chuẩn
+### Development environment
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+```
+
+Requirements: Python 3.10–3.13 and Git. Runtime state is stored under `.ctxora/`; compatible legacy `.harness/` state remains readable during migration.
+
+## Connect a coding agent
+
+CTXORA can safely edit supported client configuration while preserving unrelated entries:
+
+```bash
+ctxora profile --workspace .
+ctxora install --workspace . --profile codex
+ctxora install --workspace . --profile claude-code
+ctxora install --workspace . --profile cursor
+ctxora install --workspace . --profile generic-mcp
+```
+
+Use `--dry-run` to preview changes and `--client-config` to target a non-default file. Supported defaults:
+
+| Profile | Default configuration |
+|---|---|
+| Codex | `~/.codex/config.toml` |
+| Claude Code | `~/.claude.json` |
+| Cursor | `~/.cursor/mcp.json` |
+| Generic MCP | `~/.config/mcp/servers.json` |
+
+Manual MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "ctxora": {
+      "command": "ctxora",
+      "args": ["run", "--workspace", "/absolute/path/to/project", "--transport", "stdio"],
+      "env": {
+        "CTXORA_ALLOWED_ROOTS": "/absolute/path/to/project",
+        "PYTHONUTF8": "1"
+      }
+    }
+  }
+}
+```
+
+Do not commit client configuration containing personal absolute paths.
+
+## Core workflows
+
+### Understand a repository
 
 ```bash
 ctxora setup --workspace .
-ctxora run --workspace . --transport stdio
 ctxora index --workspace .
-ctxora query --workspace . "Where is authentication implemented?"
+ctxora query --workspace . "How does request authentication flow?"
+ctxora explain --workspace . "Where should token rotation be changed?"
 ctxora inspect --workspace . snapshot
 ```
 
-`ctxora run` resolves config, authorizes one workspace, recovers a compatible immutable snapshot or builds a candidate snapshot, atomically promotes it, then starts CTXORA MCP API v2. Local HTTP uses `--transport streamable-http`; non-loopback binding requires `--allow-external`.
+### Refresh changed files
 
-## ECC read-only adapter
+```bash
+ctxora index --workspace . --incremental
+ctxora ci --workspace . --base origin/main --head HEAD
+```
 
-CTXORA Engine supports ECC's `ecc.memory.v1` vault format as an optional external-context adapter. It never installs, clones, invokes or writes to ECC.
+### Run the MCP server
+
+```bash
+# Recommended local transport
+ctxora run --workspace . --transport stdio
+
+# Local HTTP transport
+ctxora run --workspace . --transport streamable-http \
+  --host 127.0.0.1 --port 8765
+```
+
+Non-loopback HTTP binding requires `--allow-external` and must be protected by an authorization layer before production use.
+
+### Export local state
+
+```bash
+ctxora export --workspace . --output ./ctxora-snapshot.json
+ctxora doctor --workspace .
+ctxora repair --workspace .
+```
+
+## CLI reference
+
+| Command | Purpose |
+|---|---|
+| `setup` | Create local workspace configuration. |
+| `register` | Register and authorize a workspace. |
+| `run` | Start CTXORA MCP in the foreground. |
+| `start`, `status`, `stop` | Manage the local background process. |
+| `index` | Build or refresh the local snapshot. |
+| `query` | Return a structured context package. |
+| `explain` | Explain where and how a change should be made. |
+| `context-score` | Score repository context readiness. |
+| `repo-map` | Produce a compact repository map. |
+| `inspect` | Inspect workspace, snapshot, bundle, or ECC state. |
+| `doctor`, `repair` | Diagnose or rebuild local state. |
+| `export` | Export a snapshot to JSON. |
+| `profile` | List supported coding-agent profiles. |
+| `install`, `uninstall` | Add or remove MCP client configuration safely. |
+| `ci` | Refresh files changed between two Git refs. |
+| `generate-agents-md` | Generate repository instructions for agents. |
+| `generate-copilot-instructions` | Generate GitHub Copilot instructions. |
+| `generate-cursor-rules` | Generate Cursor rules. |
+| `pro` | Show CTXORA Pro waitlist status; installs no paid functionality. |
+
+All commands support `--workspace`. Run `ctxora <command> --help` for command-specific options.
+
+## MCP tools
+
+CTXORA MCP currently exposes 24 tools.
+
+### Context and workspace
+
+| Tool | Purpose |
+|---|---|
+| `register_workspace` | Register an allowed repository root. |
+| `refresh_workspace` | Build or incrementally refresh its snapshot. |
+| `plan_context` | Select the best retrieval strategy for a task. |
+| `retrieve_context` | Return ranked evidence with coverage diagnostics. |
+| `prepare_context` | Produce the final budgeted context package. |
+| `context_stats` | Inspect index and snapshot statistics. |
+| `invalidate_context` | Invalidate indexes or cached state. |
+| `retrieve_context_legacy` | Compatibility entry point for older clients. |
+
+### Memory and handoffs
+
+| Tool | Purpose |
+|---|---|
+| `memory_save`, `memory_search`, `memory_inject` | Persist, retrieve, and inject scoped knowledge. |
+| `memory_list`, `memory_delete`, `memory_evict`, `memory_stats` | Manage local memory lifecycle. |
+| `handoff_conversation` | Store a raw provider-format conversation handoff. |
+| `restore_conversation_handoff` | Restore an explicitly selected handoff. |
+| `list_conversation_handoffs` | List retained handoffs. |
+| `delete_conversation_handoff`, `purge_expired_handoffs` | Remove selected or expired handoffs. |
+
+### Utilities
+
+| Tool | Purpose |
+|---|---|
+| `estimate_tokens` | Estimate token usage for supplied text. |
+| `get_token_budget` | Return model context budget and reserved headroom. |
+| `invalidate_cache` | Clear the retrieval cache. |
+| `reindex_paths` | Force reindexing for selected paths. |
+
+JSON Schemas for API v2 are published under [`schemas/mcp-v2/`](schemas/mcp-v2/).
+
+## Retrieval strategies
+
+| Strategy | Best for |
+|---|---|
+| `cag` | Stable instructions and compact repository knowledge. |
+| `hybrid_rag` | Focused code questions requiring ranked evidence. |
+| `long_context` | Small repositories that fit within the target budget. |
+| `hybrid_cag_rag` | Stable guidance plus task-specific code evidence. |
+| `graph_augmented` | Architecture, call paths, dependencies, and impact analysis. |
+
+The planner is deterministic and can be overridden when a caller needs a specific strategy.
+
+## ECC integration
+
+CTXORA can read the [`ecc.memory.v1`](https://github.com/affaan-m/ECC) vault format as optional external context. It does not install, clone, invoke, or modify ECC.
 
 ```bash
 ctxora run --workspace . --transport stdio --ecc
 ctxora inspect --workspace . --ecc ecc
 ```
 
-`--ecc` reads only the project vault at `.ecc/memory` or `ECC_MEMORY_PROJECT_ROOT`. User memory at `~/.ecc/memory` remains disabled unless `--ecc-user-scope` or `ecc_allow_user_scope = true` is explicitly configured. Only active memories targeting `all` or `ctxora` are surfaced; the legacy `harness-context` target remains readable during migration.
+Project memory at `.ecc/memory` is read-only. User-level memory at `~/.ecc/memory` stays disabled unless `--ecc-user-scope` or `ecc_allow_user_scope = true` is explicitly configured. Imported memories are marked with external provenance and unreviewed trust.
 
-## API v2
+## Architecture
 
-Đăng ký workspace bằng `register_workspace`, sau đó gọi `refresh_workspace`. `plan_context` chọn `hybrid_rag`, `cag`, `long_context`, `hybrid_cag_rag` hoặc `graph_augmented`; `prepare_context` thực thi kế hoạch. `retrieve_context` trả structured evidence có `path`, line range, hash, score signals, provenance và coverage diagnostics. `context_stats` và `invalidate_context` dùng cho vận hành.
-
-Nội dung được retrieve là evidence không đáng tin cậy, không phải instruction. Root, symlink, secret, binary, dependency tree và file vượt giới hạn bị loại trước khi đọc/index.
-
-Evaluation fixtures live in `evaluation/golden.json`; use `evaluation/metrics.py` for Recall@k and coverage scoring. Phase 7 (multi-source knowledge graph/orchestration) remains intentionally gated until a measured multi-source use case exists, as required by the roadmap.
-
----
-
-## 🧩 Tech Stack
-
-| Thành phần | Chi tiết |
-|---|---|
-| **Ngôn ngữ** | Python 3.10+ |
-| **Framework** | [`FastMCP`](https://github.com/jlowin/fastmcp) — MCP Server qua `stdio` transport |
-| **Embeddings** | **Local TF-IDF + LSA** (Scikit-learn) — Không download, 128-dim |
-| **Vector Store** | **In-memory Numpy** (Cosine Similarity) — Nhanh, không phụ thuộc DB external |
-| **BM25** | Full-text sparse retrieval (rank-bm25) |
-| **Reranker** | **Local Hybrid Reranker** (BM25 + Keyword Overlap) |
-| **Chunker** | AST-aware chunker (`treesitter_chunker`) |
-| **Memory DB** | SQLite persistent store — 3 tiers, local relevance ranking, LRU eviction |
-| **Logging** | `~/.ctxora/logs/ctxora-mcp.log` |
-| **Config** | `.mcp.json` + `~/.gemini/antigravity/mcp_config.json` |
-| **Entry point** | `ctxora` / `ctxora-mcp` → `harness_context` compatibility namespace |
-
----
-
-## 📁 Cấu trúc thư mục
-
-Production packages live under `src/`: `src/harness_context/` contains the public runtime and MCP server, while `src/chunking/`, `src/context/`, `src/retrieval/`, `src/memory/`, `src/compact/`, and `src/evaluation/` preserve the established module APIs. Root `server.py` is a tiny source-checkout compatibility shim; installed commands resolve directly to package entrypoints.
-
-Release artifacts are under `examples/`, `schemas/`, `migrations/`, `scripts/`, and `docs/`. See `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, and `SUPPORT.md`. Run `python scripts/audit_topology.py` to verify topology and the absence of paid control-plane dependencies.
----
-
-## 🎯 14 MCP Tools
-
-Các tool này được gọi từ MCP client (Codex / Claude Desktop), không phải CLI shell trực tiếp. Payload bên dưới là JSON arguments truyền vào tool.
-
-### 🔍 Retrieval
-
-#### `retrieve_context`
-> **MAIN TOOL** — Hybrid RAG pipeline đầy đủ.
-
-Pipeline: `index → hybrid score (BM25 + semantic + graph) → rerank → graph expand → compress → assemble`
-
-| Param | Default | Mô tả |
-|---|---|---|
-| `base_prompt` | — | System prompt gốc |
-| `paths` | — | Danh sách file/folder cần index |
-| `query` | — | Task hiện tại |
-| `model` | `claude-sonnet-4` | Model đích (ảnh hưởng token budget) |
-| `output_mode` | `concise` | `concise` / `structured` / `code_only` / `minimal` |
-| `retrieve_top_n` | `50` | Pool candidates trước rerank |
-| `rerank_top_k` | `12` | Chunks sau rerank |
-| `memory_top_k` | `4` | Memory entries inject thêm |
-| `graph_expand` | `true` | Mở rộng qua dependency graph |
-| `compress` | `true` | Nén chunks thành XML |
-| `force_reindex` | `false` | Force re-chunk ngay cả khi đã index |
-| `target_ratio` | `0.20` | Giới hạn prompt cuối theo % context window |
-| `max_prompt_tokens` | `4000` | Giới hạn tuyệt đối theo budget dự án; truyền `0` để dùng `target_ratio` |
-| `include_report` | `false` | Chỉ thêm report token khi cần audit/debug |
-| `base_prompt_policy` | `reject` | `reject` hoặc `truncate` nếu base prompt quá lớn |
-
-Budget được enforce trên prompt cuối đã assemble:
-`base_prompt + retrieved_context + memory + query + wrapper`. Nếu base prompt
-tự nó vượt target, tool sẽ reject với báo cáo rõ, trừ khi bật
-`base_prompt_policy: "truncate"`.
-
-**Use case:**
-- Trước khi sửa một flow lớn, lấy đúng file/chunk liên quan thay vì nhét toàn bộ repo vào context.
-- Hỏi kiến trúc hoặc dependency của một module.
-- Chuẩn bị context ngắn gọn cho model có context window nhỏ hơn.
-
-**Ví dụ:**
-```json
-{
-  "base_prompt": "You are a senior backend engineer. Use retrieved context only when relevant.",
-  "paths": ["src/", "server.py"],
-  "query": "optimize auth flow",
-  "model": "gpt-5.5",
-  "output_mode": "structured",
-  "retrieve_top_n": 50,
-  "rerank_top_k": 12,
-  "memory_top_k": 4,
-  "graph_expand": true,
-  "compress": true,
-  "max_prompt_tokens": 4000
-}
+```text
+CLI / MCP / CI transports
+          ↓
+Application services
+          ↓
+Domain contracts and planning
+          ↓
+Local scanners · parsers · indexes · graph · snapshots · SQLite
 ```
 
-#### `reindex_paths`
-Force re-chunk và re-index các path chỉ định. Chunks cũ của path được thay thế,
-toàn bộ vector index được rebuild trên cùng embedding basis, và retrieval cache
-được xóa để không trả context cũ.
+Production packages use the `src/` layout. `harness_context` remains the internal Python namespace for compatibility; public branding and commands use CTXORA. See [Architecture](docs/ARCHITECTURE.md) and [OSS release scope](docs/OSS-IMPLEMENTATION-PLAN.md).
 
-**Use case:** vừa refactor hoặc tạo file mới, cần index lại để lần `retrieve_context` sau thấy nội dung mới.
+## Privacy and security
 
-**Ví dụ:**
-```json
-{
-  "paths": ["src/auth/", "server.py"]
-}
+- No remote telemetry by default.
+- No required cloud account or hosted index.
+- Workspace roots are explicitly authorized and canonicalized.
+- Symlinks cannot escape an authorized root.
+- Secret-like and binary files are excluded before indexing.
+- Retrieved source is untrusted evidence and cannot override agent instructions.
+- External HTTP is opt-in and requires your own authorization layer.
+
+Report vulnerabilities through [GitHub Private Vulnerability Reporting](https://github.com/nguyentrunghieutcu/ctxora-engine/security/advisories/new). If that channel is unavailable, email `nguyentrunghieutcu@gmail.com`. See [SECURITY.md](SECURITY.md).
+
+## Free and Pro
+
+### CTXORA Free — available now
+
+The entire local engine in this MIT-licensed repository is free and unlimited: manual indexing, CAG/RAG/graph retrieval, MCP, local memory, handoffs, health tools, repository maps, and instruction generation.
+
+### CTXORA Pro — waitlist
+
+Planned paid scope is limited to managed repository automation, private workflow operations, and shared team context. Billing, entitlements, hosted automation, and team services are not implemented in this repository. Running `ctxora pro` only returns waitlist information.
+
+See [the product boundary](docs/PRICING.md).
+
+## Project structure
+
+```text
+src/harness_context/   Runtime, domain, application, MCP, CLI, storage
+src/chunking/          AST-aware and fallback chunking
+src/context/           Assembly, sanitization, token budgeting
+src/retrieval/         BM25, local embeddings, graph, reranking, cache
+src/memory/            Local episodic and vector memory
+src/compact/           Provider handoff and compaction helpers
+src/evaluation/        Quality metrics and release gates
+schemas/mcp-v2/        Published API v2 JSON Schemas
+tests/                 Unit, security, evaluation, E2E, packaging tests
+scripts/               Install, uninstall, migration, topology audit
 ```
 
-#### `invalidate_cache`
-Xóa TTL retrieval cache. Cache cũng tự miss khi fingerprint của file/folder thay đổi.
-
-**Use case:** kết quả retrieval cũ không còn đúng vì vừa đổi nhiều file hoặc đổi nhánh.
-
-**Ví dụ:**
-```json
-{}
-```
-
----
-
-### 💬 Conversation
-
-#### `handoff_conversation`
-> Tự quyết định handoff khi lịch sử dài mà **không nén hoặc thay đổi message**.
-
-- Mặc định handoff từ `30,000` token, theo session budget của project.
-- Dưới ngưỡng, trả `{ "action": "continue" }` và không ghi dữ liệu.
-- Trên ngưỡng, lưu nguyên `messages_json` vào `~/.ctxora/handoffs.sqlite3`
-  rồi trả `handoff_id` nhỏ gọn; MCP client tạo task mới.
-- Gọi `restore_conversation_handoff` với ID đó chỉ khi task mới cần đọc lịch sử.
-
-MCP server không thể tự tạo task trong Codex; client cần gọi tool này trước mỗi
-turn hoặc theo hook của mình, rồi tạo task mới khi `action` là `handoff`.
-
-**Ví dụ:**
-```json
-{
-  "messages_json": "[{\"role\":\"user\",\"content\":\"...\"}]",
-  "threshold_tokens": 30000,
-  "label": "release-planning"
-}
-```
-
-#### `restore_conversation_handoff`
-Lấy lại đúng `messages_json` gốc bằng `handoff_id`. Tool này không tóm tắt,
-cắt bớt, hoặc đổi format OpenAI / Anthropic / Gemini.
-
-### 🧠 Memory
-
-| Tool | Mô tả |
-|---|---|
-| `memory_save` | Lưu knowledge vào memory tier (`episodic` / `semantic` / `procedural`) |
-| `memory_search` | Tìm kiếm local relevance bằng key, tags và nội dung memory |
-| `memory_inject` | Inject memory entries vào system prompt (không cần RAG) |
-| `memory_delete` | Xóa entry theo key + type |
-| `memory_list` | Liệt kê entries gần nhất |
-| `memory_evict` | LRU eviction — giữ top-N entries |
-| `memory_stats` | Thống kê theo tier (count, tokens, hits) |
-
-**3 Memory Tiers:**
-- `episodic` — sự kiện, lỗi đã gặp, quyết định cụ thể
-- `semantic` — kiến thức, patterns, quy tắc dự án
-- `procedural` — quy trình, workflow, cách làm
-
-Memory được lưu tại `~/.ctxora/memory.sqlite3`; có thể đổi vị trí bằng
-biến môi trường `CTXORA_MEMORY_DB`.
-
-#### `memory_save`
-Lưu một mẩu knowledge vào memory store.
-
-**Use case:** lưu convention của repo, quyết định kỹ thuật, hoặc lỗi đã debug xong để các lần sau retrieve/inject lại.
-
-**Ví dụ:**
-```json
-{
-  "key": "auth-refresh-token-policy",
-  "value": "Refresh token rotation is mandatory; never reuse old refresh tokens after successful refresh.",
-  "mtype": "semantic",
-  "tags": "auth,security"
-}
-```
-
-#### `memory_search`
-Tìm memory theo local TF-IDF/LSA + lexical relevance. `min_sim` được áp dụng
-trước khi inject nên memory không liên quan không đi vào prompt.
-
-**Use case:** kiểm tra repo đã từng có quyết định hoặc ghi chú liên quan trước khi sửa code.
-
-**Ví dụ:**
-```json
-{
-  "query": "refresh token rotation",
-  "mtype": "semantic",
-  "top_k": 5,
-  "min_sim": 0.12
-}
-```
-
-#### `memory_inject`
-Inject memory liên quan vào `base_prompt` mà không cần đọc source code.
-
-**Use case:** task cần project rules hoặc decision history, nhưng không cần RAG trên file.
-
-**Ví dụ:**
-```json
-{
-  "base_prompt": "Follow project conventions and answer concisely.",
-  "query": "implement auth refresh flow",
-  "top_k": 4,
-  "min_sim": 0.18,
-  "output_mode": "concise",
-  "model": "gpt-5.5"
-}
-```
-
-#### `memory_delete`
-Xóa entry theo `key` và `mtype`.
-
-**Use case:** loại bỏ memory sai, cũ, hoặc không còn áp dụng.
-
-**Ví dụ:**
-```json
-{
-  "key": "old-auth-rule",
-  "mtype": "semantic"
-}
-```
-
-#### `memory_list`
-Liệt kê keys gần nhất, có thể lọc theo tier.
-
-**Use case:** audit nhanh memory đang lưu gì trước khi evict hoặc delete.
-
-**Ví dụ:**
-```json
-{
-  "mtype": "semantic",
-  "limit": 20
-}
-```
-
-#### `memory_evict`
-Xóa các memory ít dùng nhất, giữ lại top-N theo LRU.
-
-**Use case:** dọn memory store khi quá nhiều ghi chú cũ làm retrieval nhiễu.
-
-**Ví dụ:**
-```json
-{
-  "keep_top": 300
-}
-```
-
-#### `memory_stats`
-Xem thống kê số lượng, token, lượt hit theo tier.
-
-**Use case:** kiểm tra memory có phình quá lớn hoặc tier nào đang được dùng nhiều.
-
-**Ví dụ:**
-```json
-{}
-```
-
----
-
-### 📊 Utilities
-
-| Tool | Mô tả |
-|---|---|
-| `estimate_tokens` | Ước tính số token cho một đoạn text bất kỳ |
-| `get_token_budget` | Xem token budget cho model cụ thể (context window, headroom, inject budget) |
-
-#### `estimate_tokens`
-Ước tính token và kiểm tra đoạn text có fit trong các model phổ biến không.
-
-**Use case:** trước khi inject prompt dài, kiểm tra kích thước thay vì đoán theo số ký tự.
-
-**Ví dụ:**
-```json
-{
-  "text": "Long prompt or retrieved context here..."
-}
-```
-
-#### `get_token_budget`
-Trả về context window, reserved output/reasoning/tools và inject budget cho model.
-
-**Use case:** chọn model phù hợp hoặc debug vì sao `retrieve_context` chỉ chọn một phần chunks.
-
-**Ví dụ:**
-```json
-{
-  "model": "gpt-5.5"
-}
-```
-
----
-
-## 🔄 Luồng hoạt động
-
-```
-AI assistant
-    └── gọi MCP tool qua stdio
-        └── server.py (FastMCP)
-            │
-            ├── retrieve_context()
-            │   ├── AST Chunker       → chunk file theo cú pháp
-            │   ├── Embedding Engine  → local TF-IDF + LSA vectors (full rebuild khi corpus đổi)
-            │   ├── BM25 Index        → sparse keyword scoring
-            │   ├── Hybrid Score      → 55% semantic + 20% BM25 + 15% priority/graph
-            │   ├── Reranker          → cross-encoder rerank
-            │   ├── Graph Expander    → dependency symbol expansion
-            │   ├── Compressor        → XML context compression
-            │   ├── Memory Store      → inject relevant memories
-            │   └── Assembler         → build final enriched prompt
-            │
-            ├── handoff_conversation()
-            │   └── HandoffStore       → preserve raw JSON → return handoff_id
-            │
-            └── memory_*()
-                └── MemoryStore (SQLite) → Episodic / Semantic / Procedural
-```
-
----
-
-## ⚙️ Cấu hình
-
-**`.mcp.json`** (workspace-level):
-```json
-{
-  "mcpServers": {
-    "ctxora": {
-      "command": "<repo-path>/.venv/bin/python",
-      "args": ["<repo-path>/server.py"],
-      "env": { "PYTHONUTF8": "1" }
-    }
-  }
-}
-```
-
-**`claude_desktop_config.json`** (`~/Library/Application Support/Claude/`):
-```json
-{
-  "mcpServers": {
-    "ctxora": {
-      "command": "<repo-path>/.venv/bin/python",
-      "args": ["<repo-path>/server.py"],
-      "env": { "PYTHONUTF8": "1" }
-    }
-  }
-}
-```
-
----
-
-## 🛠 Lệnh hữu ích
+## Development and verification
 
 ```bash
-# Xem log realtime
-tail -f ~/.ctxora/logs/ctxora-mcp.log
-
-# Chạy server thủ công để test
-cd ctxora-engine
-.venv/bin/python server.py
-
-# Cài dependencies
-.venv/bin/pip install -r requirements.txt
+ruff check .
+python scripts/audit_topology.py
+python -m unittest discover -s tests -t . -v
+python -m evaluation.gates
+python -m compileall -q src tests scripts
+git diff --check
 ```
 
-### Release gates
+The CI matrix runs on Python 3.10, 3.11, 3.12, and 3.13. Evaluation fixtures cover Python, TypeScript, Flutter, monorepos, Vietnamese content, malicious prompt-like files, long documents, and duplicate symbols.
+
+## Troubleshooting
+
+### `ctxora` is not found
+
+Install the project into the active Python environment and verify that its scripts directory is on `PATH`:
 
 ```bash
-# Full unit, security, evaluation and end-to-end suite
-.venv/bin/python -m unittest discover -s tests -t . -v
-
-# Provider-neutral retrieval quality gate
-.venv/bin/python -m evaluation.gates
+python3 -m pip install .
+python3 -m pip show ctxora-engine
 ```
 
-The evaluation gate enforces Vietnamese retrieval recall, MRR, nDCG, token-budget
-compliance and path/line provenance. CI runs this gate independently after the test suite.
+### Workspace is rejected
 
----
+Use an absolute existing path and ensure it is included in `CTXORA_ALLOWED_ROOTS` when the MCP client sets an allowlist.
 
-## 📌 Ghi chú quan trọng
+### Existing instruction file is not replaced
 
-- Log file chính: `~/.ctxora/logs/ctxora-mcp.log`
-- Legacy symlink: `~/.gemini/mcp-harness-v3.log` vẫn được tạo tự động nếu hệ thống cho phép
-- Config path `~/.gemini/antigravity/mcp_config.json` phải trỏ đến `server.py` (không phải legacy script)
-- Server tự động load model embeddings khi khởi động lần đầu (có thể mất vài giây)
+This is intentional. Review the generated output path or rerun the generator with `--force` only when replacement is desired.
+
+### HTTP binding is rejected
+
+Loopback is the default security boundary. Use `--allow-external` only behind an authentication and network-access layer you control.
+
+### Local state needs rebuilding
+
+```bash
+ctxora doctor --workspace .
+ctxora repair --workspace .
+```
+
+## Documentation
+
+- [OSS release scope](docs/OSS-IMPLEMENTATION-PLAN.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Operations](docs/OPERATIONS.md)
+- [Free and Pro boundary](docs/PRICING.md)
+- [Security policy](SECURITY.md)
+- [Support policy](SUPPORT.md)
+- [Contributing](CONTRIBUTING.md)
+- [Changelog](CHANGELOG.md)
+
+## Community
+
+- Open a [GitHub issue](https://github.com/nguyentrunghieutcu/ctxora-engine/issues) for reproducible bugs and feature requests.
+- Use private vulnerability reporting for security issues.
+- Contributions that preserve the local-first and paid-control-plane independence boundaries are welcome.
+
+## License
+
+CTXORA Engine is released under the [MIT License](LICENSE).
