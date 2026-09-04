@@ -13,7 +13,7 @@
 | Free plan | **CTXORA Free** — unlimited local engine |
 | Paid plan | **CTXORA Pro** — waitlist |
 
-Implementation status and phased OSS completion plan: `docs/OSS-IMPLEMENTATION-PLAN.md`.
+Public OSS release scope and completed phases: `docs/OSS-IMPLEMENTATION-PLAN.md`.
 
 ## Free and paid boundary
 
