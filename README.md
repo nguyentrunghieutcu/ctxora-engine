@@ -142,6 +142,12 @@ Install all CTXORA skills from this repository:
 npx skills add nguyentrunghieutcu/ctxora-engine
 ```
 
+Install the curated CTXORA pack:
+
+```bash
+npx skills add https://www.skills.sh/packs/hieu-hoc-codes-projects
+```
+
 List or install one skill:
 
 ```bash

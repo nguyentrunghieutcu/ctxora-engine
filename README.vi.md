@@ -142,6 +142,12 @@ Cài toàn bộ CTXORA skills từ repository này:
 npx skills add nguyentrunghieutcu/ctxora-engine
 ```
 
+Cài pack CTXORA đã được gom sẵn:
+
+```bash
+npx skills add https://www.skills.sh/packs/hieu-hoc-codes-projects
+```
+
 Liệt kê hoặc chỉ cài một skill:
 
 ```bash
