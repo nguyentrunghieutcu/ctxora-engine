@@ -435,7 +435,7 @@ wheels = [
 
 [[package]]
 name = "ctxora-engine"
-version = "6.2.1"
+version = "6.2.2"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },

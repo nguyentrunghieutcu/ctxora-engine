@@ -67,6 +67,7 @@ Codex · Claude Code · Cursor · Copilot · MCP clients
 ### Local context engine
 
 - AST-aware chunking cho Python, JavaScript và TypeScript; fallback chunking có giới hạn cho định dạng text khác.
+- Luồng setup, indexing, retrieval và MCP startup độc lập framework, được kiểm thử với Python, TypeScript, Flutter, Go, Rust, Java, Kotlin, Swift, PHP và Ruby.
 - Hybrid lexical và local semantic retrieval bằng BM25, TF-IDF/LSA, keyword overlap, symbol và path.
 - Code dependency graph và graph-augmented context selection.
 - Các strategy CAG, RAG, hybrid CAG/RAG, long context và graph augmented.

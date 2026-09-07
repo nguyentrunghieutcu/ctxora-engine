@@ -8,6 +8,9 @@ from io import StringIO
 from pathlib import Path
 
 from harness_context.cli.app import main
+from harness_context.mcp.capabilities import TOOL_NAMES
+from harness_context.mcp.server import create_mcp_server
+from harness_context.runtime import HarnessRuntime
 
 
 class CliEndToEndTests(unittest.TestCase):
@@ -66,3 +69,43 @@ class CliEndToEndTests(unittest.TestCase):
             for result in (agents, copilot, cursor):
                 self.assertEqual(result["status"], "generated")
                 self.assertTrue(Path(result["output"]).exists())
+
+    def test_framework_agnostic_full_flow_reaches_mcp_ready(self):
+        projects = {
+            "python": ("pyproject.toml", "[project]\nname = 'sample'\n", "src/app.py", "FRAMEWORK_PYTHON = True\n"),
+            "typescript": ("package.json", '{"scripts":{"test":"node --test"}}\n', "src/app.ts", "export const FRAMEWORK_TYPESCRIPT = true;\n"),
+            "flutter": ("pubspec.yaml", "name: sample\n", "lib/app.dart", "const FRAMEWORK_FLUTTER = true;\n"),
+            "go": ("go.mod", "module example.com/sample\n", "main.go", "package main\nconst FRAMEWORK_GO = true\n"),
+            "rust": ("Cargo.toml", "[package]\nname = 'sample'\nversion = '0.1.0'\n", "src/lib.rs", "pub const FRAMEWORK_RUST: bool = true;\n"),
+            "java": ("pom.xml", "<project></project>\n", "src/Main.java", "class Main { static final boolean FRAMEWORK_JAVA = true; }\n"),
+            "kotlin": ("build.gradle.kts", "plugins { kotlin(\"jvm\") version \"2.0.0\" }\n", "src/Main.kt", "const val FRAMEWORK_KOTLIN = true\n"),
+            "swift": ("Package.swift", "// swift-tools-version: 5.9\n", "Sources/App.swift", "let FRAMEWORK_SWIFT = true\n"),
+            "php": ("composer.json", '{"name":"example/sample"}\n', "src/App.php", "<?php const FRAMEWORK_PHP = true;\n"),
+            "ruby": ("Gemfile", "source 'https://rubygems.org'\n", "lib/app.rb", "FRAMEWORK_RUBY = true\n"),
+        }
+        for framework, (manifest, manifest_content, source, source_content) in projects.items():
+            with self.subTest(framework=framework), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                manifest_path = root / manifest
+                source_path = root / source
+                manifest_path.parent.mkdir(parents=True, exist_ok=True)
+                source_path.parent.mkdir(parents=True, exist_ok=True)
+                manifest_path.write_text(manifest_content, encoding="utf-8")
+                source_path.write_text(source_content, encoding="utf-8")
+
+                self.run_cli("setup", "--workspace", str(root))
+                registered = self.run_cli("register", "--workspace", str(root))
+                indexed = self.run_cli("index", "--workspace", str(root))
+                queried = self.run_cli("query", "--workspace", str(root), f"FRAMEWORK_{framework.upper()}")
+                health = self.run_cli("doctor", "--workspace", str(root))
+
+                self.assertEqual(registered["status"], "registered")
+                self.assertEqual(indexed["status"], "ready")
+                self.assertTrue(queried["evidence"]["items"])
+                self.assertTrue(health["ready"])
+
+                runtime = HarnessRuntime.for_workspace(str(root), transport="stdio")
+                startup = runtime.startup()
+                server = create_mcp_server(runtime.container, runtime.config.workspace_id, runtime.lifecycle)
+                self.assertTrue(startup["warm_start"])
+                self.assertEqual(TOOL_NAMES, frozenset(server._tool_manager._tools))

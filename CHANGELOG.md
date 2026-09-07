@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 6.2.2 — 2026-09-07
+
+- Made workspace scanning framework-agnostic and pruned generated outputs before indexing.
+- Added full-flow MCP readiness coverage across ten language and framework ecosystems.
+
+- Made workspace scanning framework-agnostic by honoring directory-style ignore rules and excluding generated outputs across common language ecosystems.
+- Added full-flow MCP readiness coverage for Python, TypeScript, Flutter, Go, Rust, Java, Kotlin, Swift, PHP, and Ruby repositories.
+
 ### CTXORA rebrand — 2026-09-04
 
 - Renamed the public brand to CTXORA, the product to CTXORA Engine, and the MCP server to CTXORA MCP.

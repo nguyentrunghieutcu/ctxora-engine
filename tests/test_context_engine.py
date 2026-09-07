@@ -48,6 +48,32 @@ class ContextEngineTests(unittest.TestCase):
             self.assertEqual(report["files"], 1)
             self.assertTrue(engine.retrieve_context("w", "xác thực")["items"])
 
+    def test_respects_framework_generated_directory_rules(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".gitignore").write_text("/.dart_tool/\n/ios/Pods/\n/build/\n", encoding="utf-8")
+            (root / "lib.dart").write_text("String rotateToken() => 'dart';\n", encoding="utf-8")
+            generated = {
+                ".dart_tool/package_config.json": "dart generated",
+                "ios/Pods/Manifest.lock": "pods generated",
+                "build/app.bin": "build generated",
+                "node_modules/package/index.js": "node generated",
+            }
+            for relative, content in generated.items():
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+
+            engine = ContextEngine()
+            engine.register_workspace("w", [str(root)])
+            report = engine.refresh_workspace("w")
+
+            self.assertEqual(report["files"], 2)
+            indexed_paths = {item.path for item in engine.states["w"].items}
+            self.assertIn(str((root / "lib.dart").resolve()), indexed_paths)
+            self.assertNotIn(str((root / ".dart_tool/package_config.json").resolve()), indexed_paths)
+            self.assertNotIn(str((root / "ios/Pods/Manifest.lock").resolve()), indexed_paths)
+
     def test_bundle_is_deterministic_and_planner_can_be_overridden(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

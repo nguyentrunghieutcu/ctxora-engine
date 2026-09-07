@@ -6,7 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const PACKAGE_VERSION = "6.2.1";
+const PACKAGE_VERSION = "6.2.2";
 const PYTHON_RANGE = "3.10-3.13";
 const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
