@@ -11,6 +11,11 @@
 - Defined CTXORA Free as the unlimited local engine and reserved managed automation, private workflows and team context for CTXORA Pro.
 - Added local Free onboarding commands for repository explanation, context scoring, repository maps and instruction generation; CTXORA Pro now reports waitlist status only.
 
+## 6.2.1 — 2026-09-07
+
+- Fixed CLI Python discovery to prefer supported versioned interpreters from Python 3.10 through 3.13.
+- Added CTXORA landing-page metadata and README branding assets.
+
 ### 2026-09-04
 
 - Completed OSS implementation Phases A–G.

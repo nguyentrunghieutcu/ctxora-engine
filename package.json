@@ -1,6 +1,6 @@
 {
   "name": "ctxora",
-  "version": "6.2.0",
+  "version": "6.2.1",
   "description": "Local-first context engine for coding agents.",
   "type": "module",
   "bin": {
@@ -10,6 +10,7 @@
     "bin",
     "src/**/*.py",
     "pyproject.toml",
+    "assets/ctxora-app-icon.png",
     "README.md",
     "README.vi.md",
     "LICENSE"
@@ -34,7 +35,7 @@
     "type": "git",
     "url": "git+https://github.com/nguyentrunghieutcu/ctxora-engine.git"
   },
-  "homepage": "https://github.com/nguyentrunghieutcu/ctxora-engine#readme",
+  "homepage": "https://ctxora-landing.vercel.app/",
   "bugs": {
     "url": "https://github.com/nguyentrunghieutcu/ctxora-engine/issues"
   },

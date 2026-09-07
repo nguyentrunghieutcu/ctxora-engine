@@ -62,7 +62,7 @@ class CleanEnvironmentPackagingTests(unittest.TestCase):
                 text=True,
             )
             installed = json.loads(probe.stdout)
-            self.assertEqual(installed["version"], "6.2.0")
+            self.assertEqual(installed["version"], "6.2.1")
             self.assertTrue(installed["module"])
             self.assertEqual(installed["scripts"], ["ctxora", "ctxora-mcp"])
             subprocess.run(

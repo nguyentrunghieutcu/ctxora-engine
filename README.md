@@ -1,5 +1,9 @@
 <div align="center">
 
+<a href="https://ctxora-landing.vercel.app/">
+  <img src="assets/ctxora-app-icon.png" alt="CTXORA icon" width="128" height="128">
+</a>
+
 # CTXORA Engine
 
 ### Index once. Ground every agent.
@@ -16,7 +20,7 @@
 
 **English** · [Tiếng Việt](README.vi.md)
 
-[Quick start](#quick-start) · [Installation](#installation) · [Agent skills](#agent-skills) · [CLI](#cli-reference) · [MCP](#mcp-tools) · [Security](#privacy-and-security)
+[Website](https://ctxora-landing.vercel.app/) · [Quick start](#quick-start) · [Installation](#installation) · [Agent skills](#agent-skills) · [CLI](#cli-reference) · [MCP](#mcp-tools) · [Security](#privacy-and-security)
 
 </div>
 

@@ -6,7 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const PACKAGE_VERSION = "6.2.0";
+const PACKAGE_VERSION = "6.2.1";
 const PYTHON_RANGE = "3.10-3.13";
 const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -36,9 +36,18 @@ function pythonCandidates() {
   if (process.env.CTXORA_PYTHON) {
     return [{ command: process.env.CTXORA_PYTHON, prefix: [] }];
   }
+  const supportedMinors = ["13", "12", "11", "10"];
   return process.platform === "win32"
-    ? [{ command: "py", prefix: ["-3"] }, { command: "python", prefix: [] }, { command: "python3", prefix: [] }]
-    : [{ command: "python3", prefix: [] }, { command: "python", prefix: [] }];
+    ? [
+        ...supportedMinors.map((minor) => ({ command: "py", prefix: [`-3.${minor}`] })),
+        { command: "python", prefix: [] },
+        { command: "python3", prefix: [] },
+      ]
+    : [
+        ...supportedMinors.map((minor) => ({ command: `python3.${minor}`, prefix: [] })),
+        { command: "python3", prefix: [] },
+        { command: "python", prefix: [] },
+      ];
 }
 
 export function findPython() {
