@@ -8,4 +8,5 @@ TOOL_NAMES = frozenset({
     "memory_search", "memory_delete", "memory_list", "handoff_conversation",
     "restore_conversation_handoff", "list_conversation_handoffs",
     "delete_conversation_handoff", "purge_expired_handoffs", "ecc_status", "ecc_search",
+    "route_skills", "skill_feedback", "skill_learning_status",
 })

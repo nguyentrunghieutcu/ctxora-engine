@@ -59,7 +59,7 @@ class WorkspaceRegistry:
             if ignore.is_file():
                 for line in ignore.read_text("utf-8").splitlines():
                     pattern = line.strip()
-                    if not pattern or pattern.startswith("#") or pattern.startswith("!"):
+                    if not pattern or pattern.startswith(("#", "!")):
                         continue
                     patterns.append(pattern.lstrip("/").rstrip("/"))
         return patterns

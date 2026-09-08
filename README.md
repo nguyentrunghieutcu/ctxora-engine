@@ -31,14 +31,22 @@ CTXORA Engine builds a reusable, local representation of a repository and suppli
 
 ## Quick start
 
+### Set up your project
+
+Run these commands from the repository you want your coding agent to understand:
+
 ```bash
-npx ctxora setup --workspace /path/to/your/project
-npx ctxora index --workspace /path/to/your/project
-npx ctxora explain --workspace /path/to/your/project \
+npx ctxora setup --workspace .
+npx ctxora index --workspace .
+npx ctxora install --workspace . --profile claude-code --dry-run
+npx ctxora install --workspace . --profile claude-code
+npx ctxora explain --workspace . \
   "Where is authentication implemented?"
 ```
 
-Expected output is structured JSON containing relevant files, symbols, dependency signals, provenance, coverage diagnostics, and recommended tests or conventions when available.
+Then restart your coding client. The first two commands create and index the local workspace; `install` connects the MCP server to Claude Code. Use `--profile codex`, `--profile cursor`, or `--profile generic-mcp` for another client. Expected query output is structured JSON containing relevant files, symbols, provenance, coverage diagnostics, and recommended tests when available.
+
+If you only want the CLI, run `npx ctxora query --workspace . "your task"`. If setup fails, run `npx ctxora doctor --workspace .` before retrying.
 
 ## Why CTXORA?
 
@@ -160,7 +168,84 @@ npx skills add nguyentrunghieutcu/ctxora-engine --list
 npx skills add nguyentrunghieutcu/ctxora-engine --skill ctxora-setup
 ```
 
-The pack includes setup, grounded repository context, and context-health workflows. The current `skills` CLI requires Node.js 22.20 or newer.
+The repository-level pack contains CTXORA's own setup, navigation, repository-context, health, profile, and learning workflows. The current `skills` CLI requires Node.js 22.20 or newer.
+
+CTXORA also vendors the current ECC catalog: 286 skills pinned to ECC commit `e04ea0b9cc8248686edf5ac751cadff550e162b8` on September 8, 2026. Start from an ECC profile, inspect it, then customize modules or individual skills:
+
+```bash
+npx ctxora skills profiles --workspace .
+npx ctxora skills modules --workspace .
+npx ctxora skills preview --workspace . --profile developer
+npx ctxora skills preview --workspace . --profile developer \
+  --add-module security --remove-skill security-scan
+npx ctxora skills install --workspace . --profile developer \
+  --add-module security --remove-skill security-scan
+ctxora skills install --workspace . --profile developer \
+  --target codex --target claude --target cursor --target gemini
+ctxora skills route "Fix React hydration performance" --workspace . --profile developer
+```
+
+The default target is Codex-compatible `.agents/skills`. Use repeatable `--target codex|claude|cursor|gemini|opencode`, `--target all`, or `--output` for a custom directory. Preview never mutates files. Install refuses to overwrite modified skills unless `--force` is explicit, and `--prune` removes only unchanged skills previously installed by CTXORA. See `THIRD_PARTY_NOTICES.md` for provenance and licensing.
+
+### Commands and agent roles
+
+CTXORA also ships explicit workflow templates inspired by ECC's command-first entry points:
+
+Canonical reusable guidance lives under `skills/`. Start with `ctxora-navigation` when the right workflow is unclear, use `ctxora-workflow-profiles` to select and customize an ECC skill profile, and use `ctxora-continuous-learning` only after a lesson is verified. See `docs/COMMAND-SKILL-MAP.md` for the compact routing map.
+
+| Command | Use | CTXORA capability |
+|---|---|---|
+| `/ctxora:context <task>` | Retrieve grounded evidence before coding | `plan_context`, `retrieve_context`, `prepare_context` |
+| `/ctxora:route <task>` | Rank profile-enabled ECC skills automatically | `route_skills`, `skill_feedback` |
+| `/ctxora:plan <task>` | Create an evidence-based implementation plan | `plan_context`, `retrieve_context` |
+| `/ctxora:review [scope]` | Review a change with repository context | `retrieve_context` |
+| `/ctxora:health` | Check workspace and index readiness | `doctor`, `context-score`, `inspect` |
+| `/ctxora:handoff save\|restore` | Continue work across sessions | handoff MCP tools |
+
+The templates are included in the npm package under `commands/`. In a Claude Code plugin installation, the namespace is `/ctxora:<command>`. If you copy a file manually into a host command directory, use the host's naming convention; clients without custom slash commands can invoke the same workflow as a normal prompt. The MCP server alone does not register slash commands.
+
+#### Enable the slash commands in Claude Code
+
+This workflow requires Claude Code installed and authenticated, plus the MCP setup above. The plugin files are included starting with npm `6.3.0` and are also available from a source checkout containing `.claude-plugin/plugin.json`, `commands/`, and `agents/`.
+
+Replace both paths below. Start in **your application repository**, not the CTXORA source repository:
+
+```bash
+cd "/absolute/path/to/your/project"
+claude --plugin-dir "/absolute/path/to/ctxora-engine"
+```
+
+Pass `--plugin-dir` again on subsequent launches. Inside Claude Code, run `/help` to check command discovery and `/mcp` to check that CTXORA is connected. These are separate checks. Then try:
+
+```text
+/ctxora:plan Add password reset
+/ctxora:context Trace the token refresh flow
+/ctxora:review
+/ctxora:health
+```
+
+For the supported Codex or Cursor profile, use `npx ctxora install --workspace . --profile codex` or replace `codex` with `cursor`. Other MCP clients need their own configuration; there is no dedicated Copilot install profile. Installing MCP does not make `/ctxora:*` commands appear automatically. Try this normal chat prompt after connecting:
+
+```text
+Use CTXORA retrieve_context for this workspace to find the authentication
+implementation and its tests. Cite the files and propose a plan; do not edit yet.
+```
+
+If commands are missing, check the plugin path. If commands appear but tools are unavailable, check MCP connection and run `npx ctxora doctor --workspace .` in your application repository. If retrieval is stale, run `npx ctxora index --workspace . --incremental`.
+
+#### Which agent should I use?
+
+Choose the role that matches the work:
+
+| Need | Role | Use when |
+|---|---|---|
+| Ground repository context | `ctxora-context-engineer` | The task spans unfamiliar or multiple files. |
+| Review a proposed change | `ctxora-reviewer` | You need findings, not autonomous implementation. |
+| Maintain setup and session state | `ctxora-maintainer` | You need indexing, diagnostics, memory, or handoffs. |
+
+These are role prompts, not separate LLMs. Your host agent remains responsible for edits; CTXORA supplies local context, memory, and handoff tools. Agent templates are included under `agents/`.
+
+To request one explicitly in a host that has loaded these agents, say: "Use the ctxora-reviewer agent to review my uncommitted changes; report findings without editing." Otherwise ask the current assistant to perform that role; do not assume a separate agent was launched. Start with `plan` for a feature, implement and run your project's tests, then use `review`. For a bug, reproduce it first and retrieve the relevant code before changing it.
 
 ## Connect a coding agent
 
@@ -260,6 +345,9 @@ ctxora repair --workspace .
 | `export` | Export a snapshot to JSON. |
 | `profile` | List supported coding-agent profiles. |
 | `install`, `uninstall` | Add or remove MCP client configuration safely. |
+| `skills profiles`, `skills modules`, `skills list` | Inspect the pinned ECC skill catalog. |
+| `skills preview`, `skills install` | Start from a profile, customize it, then preview or install selected skills. |
+| `skills route`, `skills feedback`, `skills learning` | Route tasks and maintain project-scoped feedback. |
 | `ci` | Refresh files changed between two Git refs. |
 | `generate-agents-md` | Generate repository instructions for agents. |
 | `generate-copilot-instructions` | Generate GitHub Copilot instructions. |
@@ -270,7 +358,7 @@ All commands support `--workspace`. Run `ctxora <command> --help` for command-sp
 
 ## MCP tools
 
-CTXORA MCP currently exposes 24 tools.
+CTXORA MCP currently exposes 21 tools.
 
 ### Context and workspace
 
@@ -280,30 +368,27 @@ CTXORA MCP currently exposes 24 tools.
 | `refresh_workspace` | Build or incrementally refresh its snapshot. |
 | `plan_context` | Select the best retrieval strategy for a task. |
 | `retrieve_context` | Return ranked evidence with coverage diagnostics. |
-| `prepare_context` | Produce the final budgeted context package. |
+| `prepare_context` | Produce the final budgeted package with automatic skill recommendations. |
 | `context_stats` | Inspect index and snapshot statistics. |
 | `invalidate_context` | Invalidate indexes or cached state. |
-| `retrieve_context_legacy` | Compatibility entry point for older clients. |
 
 ### Memory and handoffs
 
 | Tool | Purpose |
 |---|---|
-| `memory_save`, `memory_search`, `memory_inject` | Persist, retrieve, and inject scoped knowledge. |
-| `memory_list`, `memory_delete`, `memory_evict`, `memory_stats` | Manage local memory lifecycle. |
+| `memory_save`, `memory_search` | Persist and retrieve scoped knowledge. |
+| `memory_list`, `memory_delete` | Manage local memory lifecycle. |
 | `handoff_conversation` | Store a raw provider-format conversation handoff. |
 | `restore_conversation_handoff` | Restore an explicitly selected handoff. |
 | `list_conversation_handoffs` | List retained handoffs. |
 | `delete_conversation_handoff`, `purge_expired_handoffs` | Remove selected or expired handoffs. |
 
-### Utilities
+### Skills and ECC
 
 | Tool | Purpose |
 |---|---|
-| `estimate_tokens` | Estimate token usage for supplied text. |
-| `get_token_budget` | Return model context budget and reserved headroom. |
-| `invalidate_cache` | Clear the retrieval cache. |
-| `reindex_paths` | Force reindexing for selected paths. |
+| `route_skills`, `skill_feedback`, `skill_learning_status` | Rank enabled skills and learn from verified outcomes. |
+| `ecc_status`, `ecc_search` | Inspect and search the optional read-only ECC adapter. |
 
 JSON Schemas for API v2 are published under [`schemas/mcp-v2/`](schemas/mcp-v2/).
 
@@ -321,7 +406,10 @@ The planner is deterministic and can be overridden when a caller needs a specifi
 
 ## ECC integration
 
-CTXORA can read the [`ecc.memory.v1`](https://github.com/affaan-m/ECC) vault format as optional external context. It does not install, clone, invoke, or modify ECC.
+CTXORA has two separate ECC integrations:
+
+- A vendored, pinned skill catalog that can copy selected guidance files into a project. It never executes ECC scripts, enables hooks, or installs external dependencies.
+- An optional read-only adapter for the [`ecc.memory.v1`](https://github.com/affaan-m/ECC) vault format. It does not clone, invoke, or modify an external ECC installation.
 
 ```bash
 ctxora run --workspace . --transport stdio --ecc

@@ -24,6 +24,8 @@ from harness_context.free_tools import (
 from harness_context.installer import ClientInstaller
 from harness_context.paths import workspace_data_dir, workspace_data_dirs, workspace_runtime_dir
 from harness_context.runtime import HarnessRuntime
+from harness_context.skills import SkillCatalog, SkillRouter
+from harness_context.workspace.identity import workspace_identity
 
 
 def _runtime(args) -> HarnessRuntime:
@@ -82,12 +84,138 @@ def build_parser() -> argparse.ArgumentParser:
             command.add_argument("--dry-run", action="store_true")
         if name == "uninstall":
             command.add_argument("--delete-data", action="store_true")
+    skill_command = commands.add_parser("skills")
+    skill_command.add_argument("--workspace", default=".")
+    skill_actions = skill_command.add_subparsers(dest="skills_action", required=True)
+    profile_action = skill_actions.add_parser("profiles")
+    profile_action.add_argument("--workspace", default=argparse.SUPPRESS)
+    module_action = skill_actions.add_parser("modules")
+    module_action.add_argument("--workspace", default=argparse.SUPPRESS)
+    list_skills = skill_actions.add_parser("list")
+    list_skills.add_argument("--workspace", default=argparse.SUPPRESS)
+    list_skills.add_argument("--profile")
+    list_skills.add_argument("--module")
+    route_skills = skill_actions.add_parser("route")
+    route_skills.add_argument("task")
+    route_skills.add_argument("--workspace", default=argparse.SUPPRESS)
+    route_skills.add_argument("--profile", default="")
+    route_skills.add_argument("--top-k", type=int, default=5)
+    route_skills.add_argument("--token-budget", type=int, default=6_000)
+    route_skills.add_argument("--no-instructions", action="store_true")
+    feedback = skill_actions.add_parser("feedback")
+    feedback.add_argument("route_id")
+    feedback.add_argument("--workspace", default=argparse.SUPPRESS)
+    feedback.add_argument("--outcome", choices=("success", "failure", "rejected", "corrected"), required=True)
+    feedback.add_argument("--skill", action="append", default=[])
+    feedback.add_argument("--correction-skill", default="")
+    learning = skill_actions.add_parser("learning")
+    learning.add_argument("--workspace", default=argparse.SUPPRESS)
+    learning.add_argument("--limit", type=int, default=20)
+    for action in ("preview", "install"):
+        action_parser = skill_actions.add_parser(action)
+        action_parser.add_argument("--workspace", default=argparse.SUPPRESS)
+        action_parser.add_argument("--profile", default="developer")
+        action_parser.add_argument("--add-module", action="append", default=[])
+        action_parser.add_argument("--remove-module", action="append", default=[])
+        action_parser.add_argument("--add-skill", action="append", default=[])
+        action_parser.add_argument("--remove-skill", action="append", default=[])
+        action_parser.add_argument("--output", default="")
+        action_parser.add_argument(
+            "--target",
+            action="append",
+            choices=("codex", "claude", "cursor", "gemini", "opencode", "all"),
+            default=[],
+        )
+        action_parser.add_argument("--force", action="store_true")
+        action_parser.add_argument("--prune", action="store_true")
+        if action == "install":
+            action_parser.add_argument("--dry-run", action="store_true")
     return parser
 
 
 def _main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     root = Path(args.workspace).expanduser().resolve(strict=True)
+    if args.command == "skills":
+        catalog = SkillCatalog()
+        if args.skills_action in {"route", "feedback", "learning"}:
+            router = SkillRouter(root, workspace_identity(root), catalog)
+            workspace_id = workspace_identity(root)
+            if args.skills_action == "route":
+                _print(router.route(
+                    workspace_id,
+                    args.task,
+                    args.profile,
+                    args.top_k,
+                    not args.no_instructions,
+                    args.token_budget,
+                ))
+            elif args.skills_action == "feedback":
+                _print(router.feedback(
+                    workspace_id,
+                    args.route_id,
+                    args.outcome,
+                    args.skill,
+                    args.correction_skill,
+                ))
+            else:
+                _print(router.learning_status(workspace_id, args.limit))
+            return 0
+        if args.skills_action == "modules":
+            _print({"modules": catalog.modules})
+            return 0
+        if args.skills_action == "profiles":
+            profiles = []
+            for name, profile in catalog.profiles.items():
+                selection = catalog.select(name)
+                profiles.append({
+                    "name": name,
+                    "description": profile["description"],
+                    "modules": list(selection.modules),
+                    "skill_count": len(selection.skills),
+                })
+            _print({"catalog_commit": catalog.commit, "skill_count": len(catalog.skills), "profiles": profiles})
+            return 0
+        if args.skills_action == "list":
+            if args.profile and args.module:
+                raise ValueError("use either --profile or --module, not both")
+            if args.profile:
+                selection = catalog.select(args.profile)
+                _print(selection.to_dict())
+            elif args.module:
+                if args.module not in catalog.modules:
+                    raise ValueError(f"unknown skills module: {args.module}")
+                _print({"module": args.module, **catalog.modules[args.module]})
+            else:
+                _print({"skill_count": len(catalog.skills), "skills": sorted(catalog.skills)})
+            return 0
+        selection = catalog.select(
+            args.profile,
+            tuple(args.add_module),
+            tuple(args.remove_module),
+            tuple(args.add_skill),
+            tuple(args.remove_skill),
+        )
+        dry_run = args.skills_action == "preview" or args.dry_run
+        installs = []
+        conflicts = []
+        for target, output in catalog.install_outputs(tuple(args.target), args.output):
+            installed = catalog.install(
+                root, output, selection, force=args.force, prune=args.prune, dry_run=dry_run
+            )
+            installed["target"] = target
+            installs.append(installed)
+            conflicts.extend(f"{target}:{skill}" for skill in installed["conflicts"])
+        result = {
+            "status": "conflict" if conflicts else ("planned" if dry_run else "installed"),
+            "selection": selection.to_dict(),
+            "installs": installs,
+            "conflicts": conflicts,
+        }
+        if not dry_run and not conflicts:
+            result["profile_config"] = str(catalog.write_selection(root, selection))
+        _print(result)
+        return 2 if conflicts else 0
     if args.command == "setup":
         config = workspace_data_dir(root) / "config.toml"
         config.parent.mkdir(parents=True, exist_ok=True)
@@ -230,6 +358,8 @@ def main(argv: list[str] | None = None) -> int:
         return _main(argv)
     except SystemExit:
         raise
+    except KeyboardInterrupt:
+        return 130
     except Exception as error:  # noqa: BLE001 - CLI boundary maps all failures to stable exits.
         print(json.dumps(error_report(error), sort_keys=True), file=sys.stderr)
         return int(exit_code_for(error))

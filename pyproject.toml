@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ctxora-engine"
-version = "6.2.2"
+version = "6.4.0"
 description = "Local-first context engine for coding agents."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -35,6 +35,10 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["harness_context*", "chunking*", "compact*", "context*", "memory*", "retrieval*", "evaluation*"]
+exclude = ["harness_context.skills.ecc*"]
+
+[tool.setuptools.package-data]
+harness_context = ["skills/ecc_catalog.json", "skills/ecc/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -47,6 +51,7 @@ ignore_missing_imports = true
 [tool.ruff]
 target-version = "py310"
 line-length = 100
+exclude = ["src/harness_context/skills/ecc"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/chunking/treesitter_chunker.py" = ["BLE001"]

@@ -4,17 +4,17 @@ These rules apply to every task in this project unless explicitly overridden.
 Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.
 
 ## MCP Tool Policy
-Use the local `harness-context-optimizer` MCP tools when they materially reduce guessing or token waste.
+Use the local `CTXORA MCP` tools when they materially reduce guessing or token waste.
 
-- Before non-trivial code changes, call `retrieve_context` with the smallest relevant paths and a concrete query.
-- Before applying project-specific rules or remembered decisions, call `memory_inject` or `memory_search`.
+- Before non-trivial code changes, call `prepare_context` or `retrieve_context` with a concrete query and the smallest useful scope.
+- Before applying remembered project decisions, call `memory_search`.
 - After learning a durable project rule, workflow, bug cause, or architectural decision, call `memory_save` with the right tier:
   - `semantic` for project facts and conventions.
   - `procedural` for repeatable workflows.
   - `episodic` for specific incidents or decisions.
-- Do not call `compact_conversation` or summarize history. At 30,000 session tokens, call `handoff_conversation`; if it returns `handoff`, start a fresh task and use `restore_conversation_handoff` only when raw history is needed.
-- Use `estimate_tokens` and `get_token_budget` when prompt size or model fit is uncertain.
-- Use `reindex_paths` after significant file edits, and `invalidate_cache` when retrieval results may be stale.
+- At 30,000 session tokens, call `handoff_conversation`; start a fresh task and use `restore_conversation_handoff` only when the retained handoff is needed.
+- Use `refresh_workspace` after significant file edits, and `invalidate_context` when indexed context may be stale.
+- Retain `diagnostics.skills.route_id` in task state. After validation passes, call `skill_feedback` with `success` and the skills actually used; use `failure` only when the failure is attributable to the guidance, and `corrected` when the user replaces the routed skill.
 - Do not call MCP tools just to appear thorough. Each call must have a specific purpose tied to the task.
 
 ## Rule 1 — Think Before Coding

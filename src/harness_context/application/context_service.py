@@ -7,15 +7,17 @@ from harness_context.adapters.ecc import EccMemoryReader
 from harness_context.api.v2 import ContextPackageV2, PrepareContextRequest
 from harness_context.engine import ContextEngine
 from harness_context.schemas import HarnessError
+from harness_context.skills import SkillRouter
 from memory.episodic import MemoryStore
 
 
 class ContextService:
-    def __init__(self, engine: ContextEngine, memory: MemoryStore, handoffs: ConversationHandoffStore, ecc: EccMemoryReader | None = None):
+    def __init__(self, engine: ContextEngine, memory: MemoryStore, handoffs: ConversationHandoffStore, ecc: EccMemoryReader | None = None, skill_router: SkillRouter | None = None):
         self.engine = engine
         self.memory = memory
         self.handoffs = handoffs
         self.ecc = ecc
+        self.skill_router = skill_router
 
     def prepare(self, request: PrepareContextRequest) -> ContextPackageV2:
         if request.deadline_ms <= 0:
@@ -41,10 +43,17 @@ class ContextService:
                 raise HarnessError("ecc_not_available", "ECC adapter is not enabled or no local ECC vault was detected")
             ecc_result = self.ecc.search(request.query, limit=4)
             external_context, ecc_diagnostics = ecc_result["entries"], ecc_result["diagnostics"]
+        skill_diagnostics = {"enabled": self.skill_router is not None}
+        if self.skill_router is not None:
+            try:
+                routed = self.skill_router.route(request.workspace_id, request.query, top_k=3, include_instructions=False, token_budget=0)
+                skill_diagnostics.update({"route_id": routed["route_id"], "profile": routed["profile"], "recommendations": routed["recommendations"], "feedback_policy": routed["feedback_policy"]})
+            except ValueError as error:
+                skill_diagnostics.update({"recommendations": [], "routing_error": str(error)})
         elapsed_ms = (time.perf_counter() - started) * 1000
         if elapsed_ms > request.deadline_ms:
             raise HarnessError("deadline_exceeded", "context preparation exceeded deadline_ms")
-        diagnostics = {"coverage": evidence.get("coverage", "not_applicable") if evidence else "not_applicable", "freshness": request.freshness, "untrusted_content": True, "latency_ms": round(elapsed_ms, 3), "ecc": {"enabled": self.ecc is not None, "diagnostics": ecc_diagnostics}}
+        diagnostics = {"coverage": evidence.get("coverage", "not_applicable") if evidence else "not_applicable", "freshness": request.freshness, "untrusted_content": True, "latency_ms": round(elapsed_ms, 3), "ecc": {"enabled": self.ecc is not None, "diagnostics": ecc_diagnostics}, "skills": skill_diagnostics}
         return ContextPackageV2(api_version="2.0", workspace_id=request.workspace_id, snapshot_id=prepared["snapshot_id"], snapshot_version=prepared["snapshot_version"], plan=prepared["plan"], stable_context=prepared["bundle"], evidence=evidence, memory=memory, handoff=handoff, external_context=external_context, diagnostics=diagnostics)
 
     def prepare_values(self, **values) -> dict:

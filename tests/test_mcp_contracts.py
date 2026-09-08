@@ -24,7 +24,9 @@ class McpContractTests(unittest.TestCase):
 
     def test_transport_container_exposes_application_services(self):
         fields = ApplicationContainer.__dataclass_fields__
-        self.assertTrue({"workspace", "retrieval", "memories", "handoff", "ecc_queries"}.issubset(fields))
+        self.assertTrue({
+            "workspace", "retrieval", "memories", "handoff", "ecc_queries", "skill_router",
+        }.issubset(fields))
 
     def test_typed_error_mapping_is_available_at_mcp_boundary(self):
         payload = error_payload(ValueError("bad request"))

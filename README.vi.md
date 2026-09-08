@@ -31,14 +31,22 @@ CTXORA Engine xây dựng biểu diễn local có thể tái sử dụng của r
 
 ## Bắt đầu nhanh
 
+### Thiết lập project của bạn
+
+Chạy các lệnh sau tại repository mà coding agent cần hiểu:
+
 ```bash
-npx ctxora setup --workspace /duong-dan/toi/project
-npx ctxora index --workspace /duong-dan/toi/project
-npx ctxora explain --workspace /duong-dan/toi/project \
+npx ctxora setup --workspace .
+npx ctxora index --workspace .
+npx ctxora install --workspace . --profile claude-code --dry-run
+npx ctxora install --workspace . --profile claude-code
+npx ctxora explain --workspace . \
   "Authentication được triển khai ở đâu?"
 ```
 
-Kết quả là JSON có cấu trúc, gồm file liên quan, symbol, tín hiệu dependency, provenance, coverage diagnostics và test hoặc convention được đề xuất khi có thể xác định.
+Sau đó khởi động lại coding client. Hai lệnh đầu tạo và index workspace local; `install` kết nối MCP server với Claude Code. Dùng `--profile codex`, `--profile cursor` hoặc `--profile generic-mcp` cho client khác. Kết quả là JSON có file, symbol, provenance, coverage diagnostics và test đề xuất khi có.
+
+Nếu chỉ muốn dùng CLI, chạy `npx ctxora query --workspace . "mô tả task"`. Nếu setup lỗi, chạy `npx ctxora doctor --workspace .` trước khi thử lại.
 
 ## Vì sao cần CTXORA?
 
@@ -160,7 +168,83 @@ npx skills add nguyentrunghieutcu/ctxora-engine --list
 npx skills add nguyentrunghieutcu/ctxora-engine --skill ctxora-setup
 ```
 
-Pack gồm các workflow setup, grounded repository context và context health. Phiên bản hiện tại của `skills` CLI yêu cầu Node.js 22.20 trở lên.
+Pack ở cấp repository gồm các workflow riêng của CTXORA: setup, navigation, repository context, health, profile và learning. Phiên bản hiện tại của `skills` CLI yêu cầu Node.js 22.20 trở lên.
+
+CTXORA cũng vendor catalog ECC hiện tại: 286 skill được pin tại commit ECC `e04ea0b9cc8248686edf5ac751cadff550e162b8` ngày 8/9/2026. Bắt đầu từ một ECC profile, kiểm tra rồi tùy biến module hoặc từng skill:
+
+```bash
+npx ctxora skills profiles --workspace .
+npx ctxora skills modules --workspace .
+npx ctxora skills preview --workspace . --profile developer
+npx ctxora skills preview --workspace . --profile developer \
+  --add-module security --remove-skill security-scan
+npx ctxora skills install --workspace . --profile developer \
+  --add-module security --remove-skill security-scan
+ctxora skills install --workspace . --profile developer \
+  --target codex --target claude --target cursor --target gemini
+```
+
+Target mặc định là `.agents/skills` tương thích Codex. Có thể lặp `--target codex|claude|cursor|gemini|opencode`, dùng `--target all`, hoặc `--output` cho thư mục tùy chỉnh. Preview không sửa file. Install không ghi đè skill đã chỉnh sửa nếu chưa truyền `--force`; `--prune` chỉ xóa skill chưa bị sửa và trước đó do CTXORA cài. Xem provenance và license tại `THIRD_PARTY_NOTICES.md`.
+
+### Command và agent role
+
+Hướng dẫn chính nằm trong `skills/`: dùng `ctxora-navigation` để chọn workflow, `ctxora-workflow-profiles` để chọn và tùy biến ECC skill profile, và `ctxora-continuous-learning` để lưu lesson đã kiểm chứng. Tra routing tại `docs/COMMAND-SKILL-MAP.md`. Skill profile độc lập với client install profile như `codex` hoặc `cursor`.
+
+CTXORA cũng cung cấp các template workflow chủ động, lấy cảm hứng từ cách ECC dùng command-first:
+
+| Command | Mục đích | Khả năng CTXORA |
+|---|---|---|
+| `/ctxora:context <task>` | Lấy bằng chứng repository trước khi code | `plan_context`, `retrieve_context`, `prepare_context` |
+| `/ctxora:route <task>` | Tự chọn skill trong profile và học sau validation | `route_skills`, `skill_feedback` |
+| `/ctxora:plan <task>` | Lập kế hoạch dựa trên context | `plan_context`, `retrieve_context` |
+| `/ctxora:review [scope]` | Review thay đổi với context repository | `retrieve_context` |
+| `/ctxora:health` | Kiểm tra workspace và index | `doctor`, `context-score`, `inspect` |
+| `/ctxora:handoff save\|restore` | Tiếp tục công việc giữa các session | handoff MCP tools |
+
+Template nằm trong npm package ở `commands/`. Khi cài dưới dạng Claude Code plugin, namespace là `/ctxora:<command>`. Nếu copy thủ công, dùng quy ước tên command của client; client không hỗ trợ slash command có thể dùng workflow tương tự như prompt thường. Chỉ cài MCP server không tự đăng ký slash command.
+
+#### Bật slash command trong Claude Code
+
+Cần cài và đăng nhập Claude Code, đồng thời kết nối MCP như phần trên. Plugin được đóng gói từ npm `6.3.0` và cũng có sẵn trong source checkout chứa `.claude-plugin/plugin.json`, `commands/` và `agents/`.
+
+Thay cả hai đường dẫn bên dưới. Mở Claude Code tại **repository ứng dụng của bạn**, không phải repository source CTXORA:
+
+```bash
+cd "/duong-dan-tuyet-doi/toi/project-cua-ban"
+claude --plugin-dir "/duong-dan-tuyet-doi/toi/ctxora-engine"
+```
+
+Các lần mở sau cũng cần truyền `--plugin-dir`. Trong Claude Code, dùng `/help` kiểm tra command và `/mcp` kiểm tra kết nối CTXORA. Đây là hai bước kiểm tra riêng. Sau đó thử:
+
+```text
+/ctxora:plan Thêm tính năng reset mật khẩu
+/ctxora:context Trace luồng refresh token
+/ctxora:review
+/ctxora:health
+```
+
+Với Codex hoặc Cursor, chạy `npx ctxora install --workspace . --profile codex` hoặc thay `codex` bằng `cursor`. MCP client khác cần cấu hình riêng; chưa có install profile riêng cho Copilot. Cài MCP không tự làm xuất hiện `/ctxora:*`. Sau khi kết nối, thử prompt thường:
+
+```text
+Dùng CTXORA retrieve_context cho workspace này để tìm phần authentication
+và test liên quan. Chỉ ra các file và đề xuất kế hoạch; chưa chỉnh sửa code.
+```
+
+Không thấy command: kiểm tra đường dẫn plugin. Có command nhưng không gọi được tool: kiểm tra kết nối MCP và chạy `npx ctxora doctor --workspace .` tại repo ứng dụng. Context cũ: chạy `npx ctxora index --workspace . --incremental`.
+
+#### Nên dùng agent nào?
+
+Chọn role theo nhu cầu:
+
+| Nhu cầu | Role | Khi dùng |
+|---|---|---|
+| Lấy context repository | `ctxora-context-engineer` | Task liên quan repository lạ hoặc nhiều file. |
+| Review thay đổi | `ctxora-reviewer` | Cần finding, không cần agent tự sửa. |
+| Quản trị setup và session | `ctxora-maintainer` | Cần index, chẩn đoán, memory hoặc handoff. |
+
+Đây là role prompt, không phải các LLM riêng. Agent của host vẫn chịu trách nhiệm chỉnh sửa; CTXORA cung cấp context cục bộ, memory và handoff. Template agent nằm trong `agents/`.
+
+Nếu host đã nạp các agent, yêu cầu rõ: "Dùng agent ctxora-reviewer review thay đổi chưa commit; chỉ báo finding, không sửa code." Nếu chưa nạp, yêu cầu assistant hiện tại thực hiện vai trò đó; không mặc định có agent riêng được khởi chạy. Với feature: `plan` → triển khai và chạy test của project → `review`. Với bug: tái hiện lỗi trước, lấy context liên quan rồi mới sửa.
 
 ## Kết nối coding agent
 
@@ -260,6 +344,8 @@ ctxora repair --workspace .
 | `export` | Export snapshot ra JSON. |
 | `profile` | Liệt kê coding-agent profile được hỗ trợ. |
 | `install`, `uninstall` | Thêm hoặc gỡ cấu hình MCP client an toàn. |
+| `skills profiles`, `skills modules`, `skills list` | Xem catalog ECC skill đã pin. |
+| `skills preview`, `skills install` | Bắt đầu từ profile, tùy biến rồi preview hoặc cài các skill đã chọn. |
 | `ci` | Refresh file thay đổi giữa hai Git ref. |
 | `generate-agents-md` | Sinh repository instructions cho agent. |
 | `generate-copilot-instructions` | Sinh GitHub Copilot instructions. |
@@ -270,7 +356,7 @@ Mọi command đều hỗ trợ `--workspace`. Chạy `ctxora <command> --help` 
 
 ## MCP tools
 
-CTXORA MCP hiện cung cấp 24 tools.
+CTXORA MCP hiện cung cấp 21 tools.
 
 ### Context và workspace
 
@@ -321,7 +407,10 @@ Planner deterministic và có thể override khi caller cần strategy cụ th�
 
 ## Tích hợp ECC
 
-CTXORA có thể đọc vault format [`ecc.memory.v1`](https://github.com/affaan-m/ECC) như external context tùy chọn. CTXORA không cài, clone, gọi hoặc sửa ECC.
+CTXORA có hai tích hợp ECC độc lập:
+
+- Catalog skill được vendor và pin, dùng để copy guidance đã chọn vào project; không chạy script ECC, bật hook hay cài dependency ngoài.
+- Adapter read-only tùy chọn cho vault [`ecc.memory.v1`](https://github.com/affaan-m/ECC); không clone, gọi hoặc sửa bản cài ECC bên ngoài.
 
 ```bash
 ctxora run --workspace . --transport stdio --ecc

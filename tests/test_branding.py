@@ -20,6 +20,8 @@ from harness_context.cli.app import build_parser
 from harness_context.mcp.capabilities import SERVER_NAME
 from harness_context.paths import workspace_state_dir
 
+ROOT = Path(__file__).resolve().parents[1]
+
 
 class BrandingTests(unittest.TestCase):
     def test_public_brand_contract(self):
@@ -35,6 +37,18 @@ class BrandingTests(unittest.TestCase):
         self.assertEqual(DESCRIPTION, "Local-first context engine for coding agents.")
         self.assertEqual(build_parser().prog, "ctxora")
         self.assertEqual(SERVER_NAME, "CTXORA MCP")
+
+    def test_project_guidance_uses_current_mcp_brand_and_tools(self):
+        guidance = "\n".join(
+            (ROOT / filename).read_text("utf-8") for filename in ("AGENTS.md", "CLAUDE.md")
+        )
+        self.assertIn("`CTXORA MCP`", guidance)
+        self.assertNotIn("harness-context" + "-optimizer", guidance)
+        for removed_tool in (
+            "memory_inject", "compact_conversation", "estimate_tokens",
+            "get_token_budget", "reindex_paths", "invalidate_cache",
+        ):
+            self.assertNotIn(f"`{removed_tool}`", guidance)
 
     def test_legacy_workspace_state_remains_readable(self):
         with tempfile.TemporaryDirectory() as directory:

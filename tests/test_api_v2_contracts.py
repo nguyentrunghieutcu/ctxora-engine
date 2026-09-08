@@ -34,7 +34,7 @@ class ApiV2ContractTests(unittest.TestCase):
         checked_in = Path(__file__).parents[1] / "schemas" / "mcp-v2"
         with tempfile.TemporaryDirectory() as directory:
             generated = export_json_schemas(directory)
-            self.assertEqual(len(generated), 37)
+            self.assertEqual(len(generated), 43)
             self.assertEqual(
                 {path.name: path.read_text("utf-8") for path in generated},
                 {path.name: path.read_text("utf-8") for path in checked_in.glob("*.json")},

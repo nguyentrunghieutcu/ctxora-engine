@@ -1,6 +1,6 @@
 {
   "name": "ctxora",
-  "version": "6.2.2",
+  "version": "6.4.0",
   "description": "Local-first context engine for coding agents.",
   "type": "module",
   "bin": {
@@ -9,8 +9,21 @@
   "files": [
     "bin",
     "src/**/*.py",
+    "src/harness_context/skills/ecc_catalog.json",
+    "src/harness_context/skills/ecc",
+    "!src/**/__pycache__",
+    "!src/**/*.pyc",
+    "!src/**/*.pyo",
     "pyproject.toml",
     "assets/ctxora-app-icon.png",
+    "commands",
+    "agents",
+    "skills",
+    "schemas/mcp-v2",
+    "docs/COMMAND-SKILL-MAP.md",
+    "docs/third-party/ECC-LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    ".claude-plugin",
     "README.md",
     "README.vi.md",
     "LICENSE"

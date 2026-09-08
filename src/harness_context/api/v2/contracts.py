@@ -48,6 +48,15 @@ REQUEST_SCHEMAS: dict[str, dict[str, Any]] = {
     "purge_expired_handoffs": _object({}),
     "ecc_status": _object({}),
     "ecc_search": _object({"query": S, "limit": I}, ("query",)),
+    "route_skills": _object({
+        "workspace_id": S, "task": S, "profile": S, "top_k": I,
+        "include_instructions": B, "token_budget": I,
+    }, ("workspace_id", "task")),
+    "skill_feedback": _object({
+        "workspace_id": S, "route_id": S, "outcome": S,
+        "skills": {"type": ["array", "null"], "items": S}, "correction_skill": S,
+    }, ("workspace_id", "route_id", "outcome")),
+    "skill_learning_status": _object({"workspace_id": S, "limit": I}, ("workspace_id",)),
 }
 
 RESPONSE_SCHEMAS = {name: {"$schema": SCHEMA_VERSION, **OBJECT} for name in REQUEST_SCHEMAS}

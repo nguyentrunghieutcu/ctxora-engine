@@ -1,0 +1,11 @@
+{
+  "name": "ctxora",
+  "version": "6.4.0",
+  "description": "CTXORA repository context, memory, handoff, and diagnostics workflows.",
+  "homepage": "https://ctxora-landing.vercel.app/",
+  "repository": "https://github.com/nguyentrunghieutcu/ctxora-engine",
+  "license": "MIT",
+  "mcpServers": {},
+  "commands": ["./commands/"],
+  "agents": ["./agents/"]
+}

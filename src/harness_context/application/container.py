@@ -11,6 +11,7 @@ from harness_context.application.retrieval_service import RetrievalService
 from harness_context.application.services import ContextService, RefreshService
 from harness_context.application.workspace_service import WorkspaceService
 from harness_context.engine import ContextEngine
+from harness_context.skills import SkillRouter
 from harness_context.storage import SnapshotStore
 from memory.episodic import MemoryStore
 
@@ -29,3 +30,4 @@ class ApplicationContainer:
     memories: MemoryService
     handoff: HandoffService
     ecc_queries: EccService
+    skill_router: SkillRouter

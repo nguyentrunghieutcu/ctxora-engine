@@ -4,8 +4,12 @@ import asyncio
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stderr
+from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
+from harness_context.cli.app import main
 from harness_context.cli.exit_codes import ExitCode, exit_code_for
 from harness_context.mcp.lifecycle import ServerLifecycle
 from harness_context.mcp.middleware import RequestMiddleware
@@ -57,6 +61,12 @@ class PhaseEOperationsTests(unittest.TestCase):
         self.assertEqual(ExitCode.CONFIGURATION, exit_code_for(ValueError("bad")))
         self.assertEqual(ExitCode.TEMPORARY_FAILURE, exit_code_for(TimeoutError()))
         self.assertEqual(ExitCode.INTERNAL_ERROR, exit_code_for(RuntimeError()))
+
+    def test_cli_interrupt_stops_without_error_traceback(self):
+        errors = StringIO()
+        with patch("harness_context.cli.app._main", side_effect=KeyboardInterrupt()), redirect_stderr(errors):
+            self.assertEqual(130, main([]))
+        self.assertEqual("", errors.getvalue())
 
 
 if __name__ == "__main__":

@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## 6.4.0 — 2026-09-08
+
+- Added explicit Codex, Claude, Cursor, Gemini, and OpenCode project skill targets with multi-target preview, ownership, conflict protection, and pruning.
+- Added validation-gated feedback policy metadata so agents retain route IDs and automatically reinforce skills only after successful validation.
+
+## 6.3.0 — 2026-09-08
+
+- Vendored the 286-skill ECC catalog pinned at commit `e04ea0b9cc8248686edf5ac751cadff550e162b8`, including provenance and MIT license copies.
+- Added skill-only `minimal`, `opencode`, `core`, `developer`, `security`, `research`, and `full` profiles with module- and skill-level customization.
+- Added safe `ctxora skills profiles|modules|list|preview|install` workflows with conflict detection, optional pruning, and per-output ownership manifests.
+- Added automatic profile-scoped skill routing to `prepare_context`, the CLI, and MCP.
+- Added privacy-safe project feedback learning with confidence smoothing, decay, bounded pending routes, and no raw task storage.
+- Added CTXORA navigation, learning, profile, command, and Claude Code plugin templates.
 
 ## 6.2.2 — 2026-09-07
 

@@ -149,6 +149,7 @@ class ContextEngineTests(unittest.TestCase):
                 "memory_save", "memory_search", "handoff_conversation",
                 "restore_conversation_handoff",
                 "ecc_status", "ecc_search",
+                "route_skills", "skill_feedback", "skill_learning_status",
             }
             self.assertTrue(expected.issubset(mcp._tool_manager._tools))
 
