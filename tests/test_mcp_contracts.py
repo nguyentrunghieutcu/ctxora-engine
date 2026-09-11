@@ -26,6 +26,7 @@ class McpContractTests(unittest.TestCase):
         fields = ApplicationContainer.__dataclass_fields__
         self.assertTrue({
             "workspace", "retrieval", "memories", "handoff", "ecc_queries", "skill_router",
+            "events", "metrics", "operations",
         }.issubset(fields))
 
     def test_typed_error_mapping_is_available_at_mcp_boundary(self):

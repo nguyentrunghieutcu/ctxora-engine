@@ -94,6 +94,12 @@ class SkillRouterTests(unittest.TestCase):
                 router.workspace_id, secret_task, "developer", top_k=5,
                 include_instructions=False,
             )
+            pending = router.learning_status(router.workspace_id)
+            self.assertEqual(1, pending["pending_routes"])
+            self.assertEqual(
+                first["task_fingerprint"],
+                pending["pending_tasks"][0]["task_fingerprint"],
+            )
             skill = first["recommendations"][0]["skill"]
             feedback = router.feedback(
                 router.workspace_id, first["route_id"], "success", [skill]
@@ -112,6 +118,31 @@ class SkillRouterTests(unittest.TestCase):
             status = router.learning_status(router.workspace_id)
             self.assertEqual(1, status["learned_skills"][0]["evidence"])
             self.assertFalse(json.loads(router.state_path.read_text("utf-8")).get("raw_task"))
+
+    def test_learning_status_tracks_completed_tasks_and_reranking(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            router = self.router(root)
+            secret_task = "Design a stable backend API sk-private-task"
+            first = router.route(
+                router.workspace_id,
+                secret_task,
+                "developer",
+                top_k=3,
+                include_instructions=False,
+            )
+            skill = first["recommendations"][0]["skill"]
+            router.feedback(router.workspace_id, first["route_id"], "success", [skill])
+            status = router.learning_status(router.workspace_id)
+            self.assertEqual(1, status["completed_tasks"])
+            self.assertEqual("success", status["recent_tasks"][0]["outcome"])
+            self.assertEqual([skill], status["recent_tasks"][0]["used_skills"])
+            self.assertEqual(1, status["reranking"]["skills_with_signal"])
+            self.assertEqual(1, status["reranking"]["boosted_skills"])
+            self.assertEqual([], status["pending_tasks"])
+            encoded = router.state_path.read_text("utf-8")
+            self.assertNotIn(secret_task, encoded)
+            self.assertNotIn("sk-private-task", encoded)
 
     def test_prepare_context_routes_skills_automatically(self):
         with tempfile.TemporaryDirectory() as directory:

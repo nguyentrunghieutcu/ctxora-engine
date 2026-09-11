@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from harness_context.branding import MCP_SERVER_KEY
+from harness_context.domain.harnesses import REGISTRY, Capability
 
 
 @dataclass(frozen=True)
@@ -15,10 +16,8 @@ class ClientProfile:
 
 
 PROFILES = {
-    "codex": ClientProfile("codex", "toml", Path("~/.codex/config.toml")),
-    "claude-code": ClientProfile("claude-code", "json", Path("~/.claude.json")),
-    "cursor": ClientProfile("cursor", "json", Path("~/.cursor/mcp.json")),
-    "generic-mcp": ClientProfile("generic-mcp", "json", Path("~/.config/mcp/servers.json")),
+    target.id: ClientProfile(target.id, target.config_format or "", target.default_config or Path())
+    for target in REGISTRY.targets(Capability.MCP)
 }
 
 

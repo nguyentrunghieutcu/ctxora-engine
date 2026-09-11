@@ -1,6 +1,6 @@
 {
   "name": "ctxora",
-  "version": "6.4.0",
+  "version": "6.5.1",
   "description": "Local-first context engine for coding agents.",
   "type": "module",
   "bin": {
@@ -9,6 +9,7 @@
   "files": [
     "bin",
     "src/**/*.py",
+    "src/harness_context/artifacts",
     "src/harness_context/skills/ecc_catalog.json",
     "src/harness_context/skills/ecc",
     "!src/**/__pycache__",

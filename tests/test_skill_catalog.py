@@ -6,6 +6,7 @@ import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 from harness_context.cli.app import main
 from harness_context.skills import SkillCatalog
@@ -98,6 +99,93 @@ class SkillCatalogTests(unittest.TestCase):
     def test_custom_output_and_named_targets_are_mutually_exclusive(self):
         with self.assertRaisesRegex(ValueError, "either --output or --target"):
             self.catalog.install_outputs(("claude",), ".custom/skills")
+
+    def test_plan_is_stable_and_apply_rejects_stale_target_state(self):
+        selection = self.catalog.select(
+            "minimal", remove_modules=("workflow-quality",), add_skills=("api-design",)
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            first = self.catalog.plan_install(workspace, ".agents/skills", selection, target="codex")
+            second = self.catalog.plan_install(workspace, ".agents/skills", selection, target="codex")
+            self.assertEqual(first.digest, second.digest, "unchanged inputs must produce a reviewable plan")
+            target = workspace / ".agents" / "skills" / "api-design"
+            target.mkdir(parents=True)
+            (target / "SKILL.md").write_text("created after preview", "utf-8")
+            with self.assertRaisesRegex(ValueError, "changed for api-design"):
+                self.catalog.apply_install(workspace, first, selection)
+
+    def test_cli_preflights_all_targets_before_mutation(self):
+        selection = self.catalog.select(
+            "minimal", remove_modules=("workflow-quality",), add_skills=("api-design",)
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            conflict = workspace / ".claude" / "skills" / "api-design"
+            conflict.mkdir(parents=True)
+            (conflict / "SKILL.md").write_text("user-owned", "utf-8")
+            output = StringIO()
+            with redirect_stdout(output):
+                status = main([
+                    "skills", "install", "--workspace", str(workspace),
+                    "--profile", selection.profile, "--remove-module", "workflow-quality",
+                    "--add-skill", "api-design", "--target", "codex", "--target", "claude",
+                    "--delivery", "materialized",
+                ])
+            self.assertEqual(2, status)
+            self.assertFalse(
+                (workspace / ".agents" / "skills" / "api-design").exists(),
+                "a later target conflict must not leave an earlier target partially installed",
+            )
+
+    def test_apply_rejects_source_changed_after_preview(self):
+        selection = self.catalog.select(
+            "minimal", remove_modules=("workflow-quality",), add_skills=("api-design",)
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            plan = self.catalog.plan_install(workspace, ".agents/skills", selection, target="codex")
+            original_hash = self.catalog._directory_hash
+
+            def changed_source(path):
+                if path == self.catalog.source_root / "api-design":
+                    return "changed-after-preview"
+                return original_hash(path)
+
+            with (
+                patch.object(self.catalog, "_directory_hash", side_effect=changed_source),
+                self.assertRaisesRegex(ValueError, "source skill changed for api-design"),
+            ):
+                self.catalog.apply_install(workspace, plan, selection)
+
+    def test_multi_target_failure_rolls_back_files_and_receipts(self):
+        selection = self.catalog.select(
+            "minimal", remove_modules=("workflow-quality",), add_skills=("api-design",)
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            plans = tuple(
+                self.catalog.plan_install(workspace, output, selection, target=target)
+                for target, output in self.catalog.install_outputs(("codex", "claude"))
+            )
+            original_write = self.catalog._write_manifest
+            calls = 0
+
+            def fail_second_receipt(path, content):
+                nonlocal calls
+                calls += 1
+                if calls == 2:
+                    raise OSError("simulated receipt failure")
+                original_write(path, content)
+
+            with (
+                patch.object(self.catalog, "_write_manifest", side_effect=fail_second_receipt),
+                self.assertRaisesRegex(OSError, "simulated receipt failure"),
+            ):
+                self.catalog.apply_install_plans(workspace, plans, selection)
+            self.assertFalse((workspace / ".agents" / "skills" / "api-design").exists())
+            self.assertFalse((workspace / ".claude" / "skills" / "api-design").exists())
+            self.assertEqual([], list((workspace / ".ctxora" / "installer").glob("*.json")))
 
     def test_cli_profiles_reports_machine_readable_catalog(self):
         with tempfile.TemporaryDirectory() as directory:

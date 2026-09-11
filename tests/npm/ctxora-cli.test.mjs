@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-import { findPython, isSupportedPython, parsePythonVersion, runtimePython } from "../../bin/ctxora.mjs";
+import { compareVersions, findPython, isSupportedPython, parsePythonVersion, runtimePython } from "../../bin/ctxora.mjs";
 
 const ROOT = new URL("../../", import.meta.url);
 const CLI = fileURLToPath(new URL("bin/ctxora.mjs", ROOT));
@@ -17,6 +17,13 @@ test("accepts only supported CPython minor versions", () => {
   assert.equal(isSupportedPython([3, 13, 9]), true);
   assert.equal(isSupportedPython([3, 9, 20]), false);
   assert.equal(isSupportedPython([3, 14, 0]), false);
+});
+
+test("compares stable release versions deterministically", () => {
+  assert.equal(compareVersions("6.4.0", "6.5.1"), -1);
+  assert.equal(compareVersions("6.5.1", "6.5.1"), 0);
+  assert.equal(compareVersions("7.0.0", "6.5.1"), 1);
+  assert.equal(compareVersions("latest", "6.5.1"), null);
 });
 
 test("falls back to a supported versioned Python executable", { skip: process.platform === "win32" }, () => {
@@ -42,7 +49,7 @@ test("reports the npm package version without installing Python", () => {
     encoding: "utf8",
   });
   assert.equal(result.status, 0);
-  assert.equal(result.stdout.trim(), "6.4.0");
+  assert.equal(result.stdout.trim(), "6.5.1");
 });
 
 test("runs through an npm-style executable symlink", { skip: process.platform === "win32" }, () => {
@@ -51,16 +58,16 @@ test("runs through an npm-style executable symlink", { skip: process.platform ==
   symlinkSync(CLI, executable);
   const result = spawnSync(executable, ["--version"], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout.trim(), "6.4.0");
+  assert.equal(result.stdout.trim(), "6.5.1");
 });
 
 test("passes commands to an existing managed runtime with stable MCP launcher settings", { skip: process.platform === "win32" }, () => {
   const home = mkdtempSync(join(tmpdir(), "ctxora-npm-test-"));
-  const runtime = join(home, "runtime", "6.4.0");
+  const runtime = join(home, "runtime", "6.5.1");
   const python = runtimePython(runtime);
   const capture = join(home, "capture.json");
   mkdirSync(join(runtime, "venv", "bin"), { recursive: true });
-  writeFileSync(join(runtime, "install.json"), '{"packageVersion":"6.4.0"}\n');
+  writeFileSync(join(runtime, "install.json"), '{"packageVersion":"6.5.1"}\n');
   writeFileSync(python, `#!/bin/sh\nprintf '%s' "$CTXORA_MCP_COMMAND|$CTXORA_MCP_ARGS_PREFIX|$*" > "${capture}"\n`);
   spawnSync("chmod", ["+x", python]);
 
@@ -73,4 +80,22 @@ test("passes commands to an existing managed runtime with stable MCP launcher se
     readFileSync(capture, "utf8"),
     `${python}|["-m","harness_context.cli.app"]|-m harness_context.cli.app setup --workspace .`,
   );
+});
+
+test("npm package contains canonical artifacts and compatibility projections", () => {
+  const result = spawnSync("npm", ["pack", "--dry-run", "--json"], {
+    cwd: fileURLToPath(ROOT),
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const files = new Set(JSON.parse(result.stdout)[0].files.map((file) => file.path));
+  for (const path of [
+    "src/harness_context/artifacts/canonical/agents/ctxora-planner.md",
+    "src/harness_context/artifacts/manifests/artifacts.json",
+    "agents/ctxora-planner.md",
+    "commands/plan.md",
+    "skills/ctxora-navigation/SKILL.md",
+  ]) {
+    assert.equal(files.has(path), true, `${path} must be present in the npm package`);
+  }
 });

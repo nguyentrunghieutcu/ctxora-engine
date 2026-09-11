@@ -4,8 +4,8 @@ import ast
 import hashlib
 from pathlib import Path
 
-from chunking.treesitter_chunker import count_tokens
 from harness_context.domain.chunking import bounded_windows, stable_chunk_id
+from harness_context.infrastructure.chunking.treesitter_chunker import count_tokens
 from harness_context.schemas import ContextItem
 
 

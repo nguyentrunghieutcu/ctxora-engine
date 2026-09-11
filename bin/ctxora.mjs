@@ -6,9 +6,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const PACKAGE_VERSION = "6.4.0";
+const PACKAGE_VERSION = "6.5.1";
 const PYTHON_RANGE = "3.10-3.13";
 const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const UPDATE_CHECK_TTL_MS = 24 * 60 * 60 * 1000;
 
 function fail(message) {
   console.error(`ctxora: ${message}`);
@@ -20,7 +21,44 @@ function run(command, args, options = {}) {
     encoding: "utf8",
     stdio: options.capture ? "pipe" : "inherit",
     env: options.env ?? process.env,
+    timeout: options.timeout,
   });
+}
+
+export function compareVersions(left, right) {
+  const parse = (value) => /^\d+\.\d+\.\d+$/.test(value) ? value.split(".").map(Number) : null;
+  const a = parse(left);
+  const b = parse(right);
+  if (!a || !b) return null;
+  for (let index = 0; index < 3; index += 1) {
+    if (a[index] !== b[index]) return a[index] < b[index] ? -1 : 1;
+  }
+  return 0;
+}
+
+function maybeNotifyUpdate(args, environment = process.env) {
+  if (!process.stderr.isTTY || environment.CTXORA_NO_UPDATE_CHECK === "1" || args[0] === "update") return;
+  const cachePath = join(runtimeRoot(environment), "update-check.json");
+  let cached = null;
+  try { cached = JSON.parse(readFileSync(cachePath, "utf8")); } catch {}
+  const fresh = cached && Date.now() - Number(cached.checkedAt || 0) <= UPDATE_CHECK_TTL_MS;
+  let latest = fresh ? cached.latestVersion : "";
+  if (!fresh) {
+    const result = run("npm", ["view", "ctxora", "version", "--json", "--fetch-timeout=3000"], {
+      capture: true,
+      timeout: 5000,
+    });
+    if (!result.error && result.status === 0) {
+      try { latest = JSON.parse(result.stdout); } catch { latest = result.stdout.trim(); }
+      if (typeof latest === "string" && compareVersions(PACKAGE_VERSION, latest) !== null) {
+        mkdirSync(dirname(cachePath), { recursive: true });
+        writeFileSync(cachePath, `${JSON.stringify({ checkedAt: Date.now(), latestVersion: latest }, null, 2)}\n`);
+      }
+    }
+  }
+  if (typeof latest === "string" && compareVersions(PACKAGE_VERSION, latest) === -1) {
+    console.error(`ctxora: update ${latest} available; run "ctxora update plan --workspace ."`);
+  }
 }
 
 export function parsePythonVersion(output) {
@@ -136,6 +174,7 @@ export function main(args = process.argv.slice(2)) {
   }
 
   try {
+    maybeNotifyUpdate(args);
     const python = ensureRuntime();
     const environment = {
       ...process.env,

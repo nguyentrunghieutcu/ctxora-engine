@@ -51,9 +51,22 @@ class CleanEnvironmentPackagingTests(unittest.TestCase):
                     str(python),
                     "-c",
                     "import importlib.metadata as m, importlib.util, json; "
-                    "scripts = {entry.name for entry in m.distribution('ctxora-engine').entry_points}; "
+                    "distribution = m.distribution('ctxora-engine'); "
+                    "files = {str(path) for path in distribution.files}; "
+                    "scripts = {entry.name for entry in distribution.entry_points}; "
                     "print(json.dumps({'version': m.version('ctxora-engine'), "
                     "'module': importlib.util.find_spec('harness_context') is not None, "
+                    "'canonical': 'harness_context/artifacts/canonical/agents/ctxora-planner.md' "
+                    "in files, "
+                    "'manifest': 'harness_context/artifacts/manifests/artifacts.json' in files, "
+                    "'schema': 'harness_context/artifacts/schemas/artifact-manifest.schema.json' "
+                    "in files, "
+                    "'interfaces': 'harness_context/interfaces/cli/app.py' in files and "
+                    "'harness_context/interfaces/mcp/server.py' in files, "
+                    "'infrastructure': "
+                    "'harness_context/infrastructure/retrieval/embeddings.py' in files, "
+                    "'legacy_shims': 'retrieval/embeddings.py' in files and "
+                    "'harness_context/cli/app.py' in files, "
                     "'scripts': sorted(scripts)}))",
                 ],
                 cwd=temporary,
@@ -62,8 +75,14 @@ class CleanEnvironmentPackagingTests(unittest.TestCase):
                 text=True,
             )
             installed = json.loads(probe.stdout)
-            self.assertEqual(installed["version"], "6.4.0")
+            self.assertEqual(installed["version"], "6.5.1")
             self.assertTrue(installed["module"])
+            self.assertTrue(installed["canonical"])
+            self.assertTrue(installed["manifest"])
+            self.assertTrue(installed["schema"])
+            self.assertTrue(installed["interfaces"])
+            self.assertTrue(installed["infrastructure"])
+            self.assertTrue(installed["legacy_shims"])
             self.assertEqual(installed["scripts"], ["ctxora", "ctxora-mcp"])
             subprocess.run(
                 [str(python), "-m", "pip", "uninstall", "-y", "ctxora-engine"],

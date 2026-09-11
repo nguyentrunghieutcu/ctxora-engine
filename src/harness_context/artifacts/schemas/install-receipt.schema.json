@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "destination": {
+      "type": "string"
+    },
+    "installed_hashes": {
+      "type": "array"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "plan_digest": {
+      "type": "string"
+    },
+    "previous_ownership": {
+      "type": "array"
+    },
+    "profile": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "verified": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "plan_digest",
+    "target",
+    "profile",
+    "destination",
+    "installed_hashes"
+  ],
+  "type": "object"
+}

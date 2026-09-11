@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from harness_context.infrastructure.retrieval.embeddings import EmbeddingEngine
 from harness_context.schemas import ContextItem
 from harness_context.tokenize import tokens
-from retrieval.embeddings import EmbeddingEngine
 
 
 class LocalSemanticIndex:

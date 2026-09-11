@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_count": {
+      "type": "integer"
+    },
+    "artifacts": {
+      "type": "array"
+    },
+    "canonical_root": {
+      "type": "string"
+    },
+    "projections": {
+      "type": "object"
+    },
+    "schema_version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "canonical_root",
+    "projections",
+    "artifact_count",
+    "artifacts"
+  ],
+  "type": "object"
+}

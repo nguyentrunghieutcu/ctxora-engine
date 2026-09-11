@@ -9,7 +9,6 @@ from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from chunking.treesitter_chunker import count_tokens
 from harness_context.domain import (
     CAGStore,
     ContextPlanner,
@@ -18,6 +17,7 @@ from harness_context.domain import (
     RankFusion,
     Selector,
 )
+from harness_context.infrastructure.chunking.treesitter_chunker import count_tokens
 from harness_context.infrastructure.graph import LocalGraphBuilder
 from harness_context.infrastructure.indexes import (
     LocalLexicalIndex,
@@ -26,6 +26,7 @@ from harness_context.infrastructure.indexes import (
     LocalSymbolIndex,
 )
 from harness_context.infrastructure.parsing import LocalParserDispatcher
+from harness_context.infrastructure.retrieval.embeddings import EmbeddingEngine
 from harness_context.infrastructure.scanning import (
     ChangeSet,
     LocalManifest,
@@ -40,7 +41,6 @@ from harness_context.workspace import (
     transition_workspace_status,
     validate_ready_snapshot,
 )
-from retrieval.embeddings import EmbeddingEngine
 
 
 @dataclass

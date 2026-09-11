@@ -11,7 +11,7 @@ except ModuleNotFoundError:  # Python 3.10
 
 from harness_context.application.container import ApplicationContainer
 from harness_context.bootstrap import build_container, workspace_identity
-from harness_context.mcp.lifecycle import ServerLifecycle
+from harness_context.interfaces.mcp.lifecycle import ServerLifecycle
 from harness_context.paths import legacy_workspace_data_dir, workspace_data_dir
 
 
@@ -92,15 +92,36 @@ class HarnessRuntime:
 
     def health_report(self) -> dict[str, object]:
         lifecycle = self.lifecycle.status()
-        stats = self.container.retrieval.stats(self.config.workspace_id) if self.container else {}
-        ready = bool(lifecycle["ready"] and stats.get("status") == "ready")
-        return {
-            "schema_version": 1, "status": "ready" if ready else "not_ready",
-            "ready": ready, "draining": lifecycle["draining"],
-            "active_requests": lifecycle["active_requests"],
-            "snapshot_version": int(stats.get("snapshot_version", 0)),
-            "files": int(stats.get("files", 0)), "chunks": int(stats.get("chunks", 0)),
-        }
+        if self.container is None:
+            return {
+                "schema_version": "ctxora.operator-snapshot.v1",
+                "status": "not_ready",
+                "ready": False,
+                "runtime": lifecycle,
+                "workspace": {"workspace_id": self.config.workspace_id, "root_count": 1},
+                "snapshot": {},
+                "index": {},
+                "retrieval": {},
+                "memory": {},
+                "handoffs": {"count": 0, "recent": []},
+                "skills": {},
+                "installer": {"receipt_count": 0, "receipts": []},
+                "metrics": {},
+                "events": {
+                    "items": [],
+                    "cursor": "0",
+                    "next_cursor": "0",
+                    "has_more": False,
+                },
+            }
+        lifecycle.update({
+            "transport": self.config.transport,
+            "host": self.config.host,
+            "port": self.config.port,
+        })
+        return self.container.operations.snapshot(
+            self.config.workspace_id, lifecycle
+        ).to_dict()
 
     def drain(self, timeout: float = 10.0) -> bool:
         return self.lifecycle.drain(timeout)
@@ -108,7 +129,7 @@ class HarnessRuntime:
     def run(self) -> None:
         if self.container is None:
             self.startup()
-        from harness_context.mcp.server import create_mcp_server
+        from harness_context.interfaces.mcp.server import create_mcp_server
         from harness_context.watcher import WorkspaceWatcher
         server = create_mcp_server(self.container, self.config.workspace_id, self.lifecycle)
         watcher = WorkspaceWatcher(self.container.retrieval, self.container.refresh, self.config.workspace_id) if self.config.watch else None

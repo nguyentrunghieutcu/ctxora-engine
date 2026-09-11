@@ -1,4 +1,4 @@
-from memory.episodic import MemoryType
+from harness_context.infrastructure.memory.episodic import MemoryType
 
 
 class MemoryService:

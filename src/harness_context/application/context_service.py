@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import time
 
-from compact.handoff import ConversationHandoffStore
 from harness_context.adapters.ecc import EccMemoryReader
 from harness_context.api.v2 import ContextPackageV2, PrepareContextRequest
 from harness_context.engine import ContextEngine
+from harness_context.infrastructure.compact.handoff import ConversationHandoffStore
+from harness_context.infrastructure.memory.episodic import MemoryStore
 from harness_context.schemas import HarnessError
 from harness_context.skills import SkillRouter
-from memory.episodic import MemoryStore
 
 
 class ContextService:

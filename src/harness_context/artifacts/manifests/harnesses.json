@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "targets": [
+    {
+      "id": "codex",
+      "display_name": "Codex",
+      "adapter": "codex",
+      "aliases": [],
+      "capabilities": ["mcp", "skills", "agents"],
+      "mcp": {"config_format": "toml", "default_config": "~/.codex/config.toml"},
+      "artifacts": {"skills": ".agents/skills", "agents": ".codex/agents"}
+    },
+    {
+      "id": "claude-code",
+      "display_name": "Claude Code",
+      "adapter": "claude_code",
+      "aliases": ["claude"],
+      "capabilities": ["mcp", "skills", "agents", "commands"],
+      "mcp": {"config_format": "json", "default_config": "~/.claude.json"},
+      "artifacts": {"skills": ".claude/skills", "agents": ".claude/agents", "commands": ".claude/commands"}
+    },
+    {
+      "id": "cursor",
+      "display_name": "Cursor",
+      "adapter": "cursor",
+      "aliases": [],
+      "capabilities": ["mcp", "skills"],
+      "mcp": {"config_format": "json", "default_config": "~/.cursor/mcp.json"},
+      "artifacts": {"skills": ".cursor/skills"}
+    },
+    {
+      "id": "gemini",
+      "display_name": "Gemini CLI",
+      "adapter": "gemini",
+      "aliases": [],
+      "capabilities": ["skills"],
+      "mcp": null,
+      "artifacts": {"skills": ".gemini/skills"}
+    },
+    {
+      "id": "opencode",
+      "display_name": "OpenCode",
+      "adapter": "opencode",
+      "aliases": [],
+      "capabilities": ["skills"],
+      "mcp": null,
+      "artifacts": {"skills": ".opencode/skills"}
+    },
+    {
+      "id": "generic-mcp",
+      "display_name": "Generic MCP Client",
+      "adapter": "generic_mcp",
+      "aliases": [],
+      "capabilities": ["mcp"],
+      "mcp": {"config_format": "json", "default_config": "~/.config/mcp/servers.json"},
+      "artifacts": {}
+    }
+  ]
+}
+

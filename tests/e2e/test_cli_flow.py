@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -19,6 +21,17 @@ class CliEndToEndTests(unittest.TestCase):
         with redirect_stdout(output):
             self.assertEqual(main(list(arguments)), 0)
         return json.loads(output.getvalue())
+
+    def test_compatibility_module_executes_cli_for_npm_and_mcp_launchers(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "harness_context.cli.app", "--help"],
+            cwd=Path(__file__).parents[2],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(0, result.returncode)
+        self.assertIn("usage: ctxora", result.stdout)
 
     def test_setup_index_query_refresh_export_uninstall(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -1,5 +1,21 @@
 # Changelog
 
+## 6.5.1 — 2026-09-11
+
+- Fixed multi-target skill installation duplicating the full catalog into every harness.
+- Made shared runtime catalog delivery the default; materialized files are explicit opt-in.
+- Added ownership-safe, transactional legacy migration via `--prune` and regression coverage.
+
+## 6.5.0 — 2026-09-09
+
+- Added planned and explicitly confirmed CTXORA Console actions for refresh, invalidate, expired-handoff purge, index repair, diagnostics export, and install preview.
+- Added per-process CSRF protection, short-lived deterministic action digests, versioned receipts, workspace export policy, and redacted action audit events.
+- Kept canonical artifact projections and deprecated Python forwarding imports for their promised release window; removal remains deferred to a later cleanup release.
+- Added cached automatic update availability checks with no silent mutation.
+- Added durable `update check`, `update plan`, and explicitly confirmed `update apply` workflows with fixed npm scope, installed-version verification, rollback, versioned receipts, and redacted audit events.
+- Reapplies only CTXORA-owned MCP profiles and unchanged profile-based skill installs; customized skill selections remain manual.
+- Restored executable `python -m harness_context.cli.app` compatibility for npm-launched CLI commands and generated MCP client configurations.
+
 ## 6.4.0 — 2026-09-08
 
 - Added explicit Codex, Claude, Cursor, Gemini, and OpenCode project skill targets with multi-target preview, ownership, conflict protection, and pruning.
@@ -55,3 +71,7 @@
 - Added the canonical CLI and thin MCP runtime transport.
 - Added workspace-scoped memory and handoff lifecycle controls.
 - Added an optional read-only adapter for ECC `ecc.memory.v1` project and user vaults.
+- 6.5.1
+  - Fixed multi-target skill installation duplicating the full catalog into every harness.
+  - Made shared runtime catalog delivery the default; materialized files are explicit opt-in.
+  - Added ownership-safe, transactional legacy migration via `--prune` and regression coverage.

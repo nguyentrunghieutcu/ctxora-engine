@@ -1,0 +1,21 @@
+{
+  "codex": {
+    "agents": ".codex/agents",
+    "skills": ".agents/skills"
+  },
+  "claude-code": {
+    "agents": ".claude/agents",
+    "commands": ".claude/commands",
+    "skills": ".claude/skills"
+  },
+  "cursor": {
+    "skills": ".cursor/skills"
+  },
+  "gemini": {
+    "skills": ".gemini/skills"
+  },
+  "opencode": {
+    "skills": ".opencode/skills"
+  },
+  "generic-mcp": {}
+}

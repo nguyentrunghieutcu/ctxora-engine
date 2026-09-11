@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifacts": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "force": {
+      "type": "boolean"
+    },
+    "profile": {
+      "type": "string"
+    },
+    "prune": {
+      "type": "boolean"
+    },
+    "targets": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "profile",
+    "targets",
+    "artifacts"
+  ],
+  "type": "object"
+}

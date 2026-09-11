@@ -137,6 +137,15 @@ class SnapshotStore:
             if current:
                 self._atomic_json(self.previous_path, current)
 
+    def clear_active(self, workspace_id: str) -> None:
+        with file_lock(self.lock_path):
+            if self.active_path.exists():
+                active = json.loads(self.active_path.read_text("utf-8"))
+                if active.get("workspace_id") != workspace_id:
+                    raise ValueError("active snapshot belongs to another workspace")
+            self.active_path.unlink(missing_ok=True)
+            self.previous_path.unlink(missing_ok=True)
+
     def load_active(self, workspace_id: str) -> dict | None:
         self.prepare()
         with file_lock(self.lock_path):

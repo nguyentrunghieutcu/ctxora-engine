@@ -11,10 +11,10 @@ from typing import Any
 import numpy as np
 from rank_bm25 import BM25Okapi
 
+from harness_context.infrastructure.retrieval.embeddings import EmbeddingEngine
 from harness_context.paths import workspace_state_dir
 from harness_context.skills.catalog import SkillCatalog
 from harness_context.workspace.lock import file_lock
-from retrieval.embeddings import EmbeddingEngine
 
 _WORD = re.compile(r"[^\W_][\w+#.-]{1,31}", re.UNICODE)
 _STOPWORDS = {
@@ -42,6 +42,8 @@ _TECHNOLOGIES = {
     "nextjs", "node", "nuxt", "php", "postgres", "python", "quarkus", "react", "redis",
     "ruby", "rust", "springboot", "swift", "typescript", "vue", "vite",
 }
+_RERANK_WEIGHT = 0.18
+_TASK_HISTORY_LIMIT = 100
 
 
 class SkillRouter:
@@ -113,7 +115,7 @@ class SkillRouter:
                 state.get("skills", {}).get(skill, {}), set(expanded)
             )
             score = 0.0 if technology_conflict else max(
-                0.0, min(1.0, static_score + 0.18 * learned_score)
+                0.0, min(1.0, static_score + _RERANK_WEIGHT * learned_score)
             )
             reasons = self._reasons(lexical, semantic, coverage, framework, learned_score, evidence)
             scored.append((score, static_score, learned_score, confidence, evidence, skill, reasons))
@@ -122,8 +124,15 @@ class SkillRouter:
         route_id = hashlib.sha256(
             f"{workspace_id}:{time.time_ns()}:{task}".encode()
         ).hexdigest()[:20]
+        task_fingerprint = hashlib.sha256(task.encode("utf-8")).hexdigest()[:16]
         safe_terms = sorted(set(expanded) & self._catalog_vocabulary())[:32]
-        self._record_route(route_id, profile_name, safe_terms, [item[5] for item in selected])
+        self._record_route(
+            route_id,
+            task_fingerprint,
+            profile_name,
+            safe_terms,
+            [item[5] for item in selected],
+        )
         recommendations = []
         remaining_chars = token_budget * 4
         for score, static, learned, confidence, evidence, skill, reasons in selected:
@@ -160,11 +169,16 @@ class SkillRouter:
             "route_id": route_id,
             "profile": profile_name,
             "catalog_commit": self.catalog.commit,
-            "task_fingerprint": hashlib.sha256(task.encode("utf-8")).hexdigest()[:16],
+            "task_fingerprint": task_fingerprint,
             "project_signals": project_signals,
             "candidate_count": len(candidates),
             "recommendations": recommendations,
-            "learning": {"project_scoped": True, "raw_tasks_stored": False},
+            "learning": {
+                "project_scoped": True,
+                "raw_tasks_stored": False,
+                "reranking_applied": any(item[4] > 0 for item in selected),
+                "reranking_weight": _RERANK_WEIGHT,
+            },
             "feedback_policy": {
                 "mode": "after_validation",
                 "retain_route_id": True,
@@ -216,6 +230,15 @@ class SkillRouter:
                         touched.add(skill)
                 self._update_skill(state, correction_skill, "corrected", terms)
                 touched.add(correction_skill)
+            self._record_feedback(
+                state,
+                route_id,
+                route,
+                outcome,
+                used,
+                correction_skill,
+                sorted(touched),
+            )
             state["routes"].pop(route_id, None)
             self._write_state(state)
         return {
@@ -230,10 +253,15 @@ class SkillRouter:
         self._require_workspace(workspace_id)
         state = self._load_state()
         rows = []
+        boosted_skills = 0
+        penalized_skills = 0
         for skill, record in state.get("skills", {}).items():
-            _, confidence, evidence = self._learned_score(record, set())
+            learned_score, confidence, evidence = self._learned_score(record, set())
+            boosted_skills += learned_score > 0
+            penalized_skills += learned_score < 0
             rows.append({
                 "skill": skill,
+                "learned_score": round(learned_score, 6),
                 "confidence": round(confidence, 6),
                 "evidence": evidence,
                 "successes": record.get("successes", 0),
@@ -242,10 +270,36 @@ class SkillRouter:
                 "corrections": record.get("corrections", 0),
             })
         rows.sort(key=lambda item: (-item["evidence"], -item["confidence"], item["skill"]))
+        history = sorted(
+            state.get("history", []),
+            key=lambda item: item.get("completed_at", 0),
+            reverse=True,
+        )
+        pending = [
+            {
+                "route_id": route_id,
+                "task_fingerprint": route.get("task_fingerprint", f"legacy:{route_id[:12]}"),
+                "profile": route.get("profile", ""),
+                "recommended_skills": route.get("recommendations", []),
+                "created_at": route.get("created_at", 0),
+            }
+            for route_id, route in state.get("routes", {}).items()
+        ]
+        pending.sort(key=lambda item: item["created_at"], reverse=True)
         return {
             "workspace_id": workspace_id,
             "learned_skills": rows[: max(0, limit)],
-            "pending_routes": len(state.get("routes", {})),
+            "completed_tasks": len(history),
+            "recent_tasks": history[: max(0, limit)],
+            "pending_routes": len(pending),
+            "pending_tasks": pending[: max(0, limit)],
+            "reranking": {
+                "enabled": True,
+                "weight": _RERANK_WEIGHT,
+                "skills_with_signal": len(rows),
+                "boosted_skills": boosted_skills,
+                "penalized_skills": penalized_skills,
+            },
             "raw_tasks_stored": False,
         }
 
@@ -344,11 +398,19 @@ class SkillRouter:
             reasons.append("project feedback boost" if learned >= 0 else "project feedback penalty")
         return reasons or ["weak fallback match"]
 
-    def _record_route(self, route_id: str, profile: str, terms: list[str], recommendations: list[str]) -> None:
+    def _record_route(
+        self,
+        route_id: str,
+        task_fingerprint: str,
+        profile: str,
+        terms: list[str],
+        recommendations: list[str],
+    ) -> None:
         with file_lock(self.state_path.with_suffix(".lock")):
             state = self._load_state()
             routes = state.setdefault("routes", {})
             routes[route_id] = {
+                "task_fingerprint": task_fingerprint,
                 "profile": profile,
                 "terms": terms,
                 "recommendations": recommendations,
@@ -362,6 +424,33 @@ class SkillRouter:
                 for key in oldest:
                     routes.pop(key, None)
             self._write_state(state)
+
+    @staticmethod
+    def _record_feedback(
+        state: dict[str, Any],
+        route_id: str,
+        route: dict[str, Any],
+        outcome: str,
+        used_skills: list[str],
+        correction_skill: str,
+        affected_skills: list[str],
+    ) -> None:
+        history = state.setdefault("history", [])
+        history.append(
+            {
+                "route_id": route_id,
+                "task_fingerprint": route.get("task_fingerprint", f"legacy:{route_id[:12]}"),
+                "profile": route.get("profile", ""),
+                "outcome": outcome,
+                "recommended_skills": route.get("recommendations", []),
+                "used_skills": used_skills,
+                "correction_skill": correction_skill,
+                "affected_skills": affected_skills,
+                "created_at": route.get("created_at", 0),
+                "completed_at": time.time(),
+            }
+        )
+        del history[:-_TASK_HISTORY_LIMIT]
 
     @staticmethod
     def _update_skill(state: dict[str, Any], skill: str, outcome: str, terms: list[str]) -> None:
@@ -381,9 +470,13 @@ class SkillRouter:
 
     def _load_state(self) -> dict[str, Any]:
         if not self.state_path.exists():
-            return {"version": 1, "skills": {}, "routes": {}}
+            return {"version": 1, "skills": {}, "routes": {}, "history": []}
         data = json.loads(self.state_path.read_text("utf-8"))
-        return data if data.get("version") == 1 else {"version": 1, "skills": {}, "routes": {}}
+        return (
+            data
+            if data.get("version") == 1
+            else {"version": 1, "skills": {}, "routes": {}, "history": []}
+        )
 
     def _write_state(self, state: dict[str, Any]) -> None:
         self.state_path.parent.mkdir(parents=True, exist_ok=True)

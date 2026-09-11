@@ -114,6 +114,16 @@ npx ctxora doctor --workspace /path/to/your/project
 
 The dependency-free npm launcher bundles the MIT-licensed Python source and installs CTXORA Engine into a versioned local environment. It does not require a global Python package or a cloud account. Python 3.10–3.13 must already be available.
 
+Starting with `6.5.0`, interactive npm launcher sessions check for a newer stable release at most once per 24 hours and print a notice only. Disable the check with `CTXORA_NO_UPDATE_CHECK=1`. Updates are never applied silently:
+
+```bash
+ctxora update check --workspace .
+ctxora update plan --workspace .
+ctxora update apply <plan-digest> --workspace . --yes
+```
+
+Apply is restricted to the validated npm version, verifies the global installation, reapplies CTXORA-owned MCP profiles and unchanged profile-based skill targets, and rolls back on failure. Customized skill selections are reported for manual review.
+
 For a persistent shell command:
 
 ```bash
@@ -185,13 +195,15 @@ ctxora skills install --workspace . --profile developer \
 ctxora skills route "Fix React hydration performance" --workspace . --profile developer
 ```
 
-The default target is Codex-compatible `.agents/skills`. Use repeatable `--target codex|claude|cursor|gemini|opencode`, `--target all`, or `--output` for a custom directory. Preview never mutates files. Install refuses to overwrite modified skills unless `--force` is explicit, and `--prune` removes only unchanged skills previously installed by CTXORA. See `THIRD_PARTY_NOTICES.md` for provenance and licensing.
+Skill installation defaults to a shared runtime catalog: `--target all` records one workspace profile and five lightweight receipts without copying the catalog into each host. Use `route_skills` or `prepare_context` to inject only relevant instructions. `--delivery materialized` is an explicit compatibility mode for hosts that require local files; `--prune` is required to migrate legacy copies and removes only unchanged CTXORA-owned skills. Preview never mutates files, and customized skills are never overwritten. See `THIRD_PARTY_NOTICES.md` for provenance and licensing.
 
 ### Commands and agent roles
 
 CTXORA also ships explicit workflow templates inspired by ECC's command-first entry points:
 
 Canonical reusable guidance lives under `skills/`. Start with `ctxora-navigation` when the right workflow is unclear, use `ctxora-workflow-profiles` to select and customize an ECC skill profile, and use `ctxora-continuous-learning` only after a lesson is verified. See `docs/COMMAND-SKILL-MAP.md` for the compact routing map.
+
+Skill reranking is project-scoped and outcome-driven. Routed tasks remain visible as fingerprint-only pending entries until `skill_feedback` records a verified result; CTXORA does not infer success from Git changes or store raw task prompts. `ctxora skills learning --workspace .` and the local Console show completed outcomes, pending routes, and active boost/penalty signals.
 
 | Command | Use | CTXORA capability |
 |---|---|---|
@@ -240,10 +252,12 @@ Choose the role that matches the work:
 | Need | Role | Use when |
 |---|---|---|
 | Ground repository context | `ctxora-context-engineer` | The task spans unfamiliar or multiple files. |
+| Plan an implementation | `ctxora-planner` | You need files, dependencies, risks, tests, and success criteria before edits. |
+| Research a question | `ctxora-researcher` | You need repository evidence plus clearly attributed primary sources. |
 | Review a proposed change | `ctxora-reviewer` | You need findings, not autonomous implementation. |
 | Maintain setup and session state | `ctxora-maintainer` | You need indexing, diagnostics, memory, or handoffs. |
 
-These are role prompts, not separate LLMs. Your host agent remains responsible for edits; CTXORA supplies local context, memory, and handoff tools. Agent templates are included under `agents/`.
+These are role prompts, not separate LLMs. Your host agent remains responsible for edits; CTXORA supplies local context, memory, and handoff tools. Canonical templates are packaged under `src/harness_context/artifacts/canonical/`; `agents/`, `commands/`, and `skills/` are generated compatibility projections for the Claude plugin and npm ecosystem.
 
 To request one explicitly in a host that has loaded these agents, say: "Use the ctxora-reviewer agent to review my uncommitted changes; report findings without editing." Otherwise ask the current assistant to perform that role; do not assume a separate agent was launched. Start with `plan` for a feature, implement and run your project's tests, then use `review`. For a bug, reproduce it first and retrieve the relevant code before changing it.
 
@@ -342,6 +356,8 @@ ctxora repair --workspace .
 | `repo-map` | Produce a compact repository map. |
 | `inspect` | Inspect workspace, snapshot, bundle, or ECC state. |
 | `doctor`, `repair` | Diagnose or rebuild local state. |
+| `dashboard` | Open the loopback-only CTXORA Console with redacted views and allowlisted plan/confirm actions. |
+| `update check`, `update plan`, `update apply` | Check, preview and explicitly apply a verified npm update with rollback. |
 | `export` | Export a snapshot to JSON. |
 | `profile` | List supported coding-agent profiles. |
 | `install`, `uninstall` | Add or remove MCP client configuration safely. |

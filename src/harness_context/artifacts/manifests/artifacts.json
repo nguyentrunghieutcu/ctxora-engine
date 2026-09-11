@@ -1,0 +1,459 @@
+{
+  "schema_version": "ctxora.artifacts.v1",
+  "canonical_root": "src/harness_context/artifacts/canonical",
+  "projections": {
+    "agents": "agents",
+    "commands": "commands",
+    "skills": "skills"
+  },
+  "artifact_count": 19,
+  "artifacts": [
+    {
+      "id": "ctxora-context-engineer",
+      "kind": "agents",
+      "source": "agents/ctxora-context-engineer.md",
+      "capability": "agents",
+      "targets": [
+        "codex",
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "76a88e90f48d3881aa986bfac7420eeb2210705973b6cd9ee3e6b39a53b8df57",
+      "files": [
+        {
+          "path": "ctxora-context-engineer.md",
+          "sha256": "597f39fe1e08af32fce0507799922ae82caf68b340bed710076484f77242fdc9"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "ctxora-maintainer",
+      "kind": "agents",
+      "source": "agents/ctxora-maintainer.md",
+      "capability": "agents",
+      "targets": [
+        "codex",
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "44959cae1d1de56afc4920aabdd8ab32057a9ae8e50496eaa4528c14a5fe1d1f",
+      "files": [
+        {
+          "path": "ctxora-maintainer.md",
+          "sha256": "8c4077abda0379f8e535c98c908d4361227abc3b632db6c884b5169a9bd16013"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "ctxora-planner",
+      "kind": "agents",
+      "source": "agents/ctxora-planner.md",
+      "capability": "agents",
+      "targets": [
+        "codex",
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "afc0af3cbe7b36830848971af957d4893746df6ec7673755ad7ae27fece7eb8e",
+      "files": [
+        {
+          "path": "ctxora-planner.md",
+          "sha256": "a45ea5543c2bb0b8e00d6d234453ebca1c3c5cfc5907d0dc3a2c1029f0c49449"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "ctxora-researcher",
+      "kind": "agents",
+      "source": "agents/ctxora-researcher.md",
+      "capability": "agents",
+      "targets": [
+        "codex",
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "d3ec2d65d42640107ce6025ddeae3b89759891d737d417c7d65f523bfa2832ab",
+      "files": [
+        {
+          "path": "ctxora-researcher.md",
+          "sha256": "e845d34f0c03ff2369267e197ca18c0bab9154a8ec1e62d6232c9056281a130b"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "ctxora-reviewer",
+      "kind": "agents",
+      "source": "agents/ctxora-reviewer.md",
+      "capability": "agents",
+      "targets": [
+        "codex",
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "773b883da8439b4750f1443082a13fb0a6b7cc194560637427a4e9c9b58326e9",
+      "files": [
+        {
+          "path": "ctxora-reviewer.md",
+          "sha256": "ba28715dbb582486a4ac6200928ff48156b977a956d15d4c4df4ad9fc2d8472c"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "context",
+      "kind": "commands",
+      "source": "commands/context.md",
+      "capability": "commands",
+      "targets": [
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "9ea90f0041e7ba12d0d7aff1927bf34e88f60096a12fb304c1ecf66d89675643",
+      "files": [
+        {
+          "path": "context.md",
+          "sha256": "59ea84dfb729b8cdcba45f3516df8cf6a2059144d07cbbed93e5410d865d1218"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "guide",
+      "kind": "commands",
+      "source": "commands/guide.md",
+      "capability": "commands",
+      "targets": [
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "06c83df51e29467bd09ebfef8f77397371761b6c6acc737888395b7510e99816",
+      "files": [
+        {
+          "path": "guide.md",
+          "sha256": "253c84711726573ceecdb8e653f2d2ebb1a050aa7a68551cf8f7e36e2282fb72"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "handoff",
+      "kind": "commands",
+      "source": "commands/handoff.md",
+      "capability": "commands",
+      "targets": [
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "cda338773c269d9ff9c478edff05c9b855e7bd024231e1454e236c9ead8ff5d6",
+      "files": [
+        {
+          "path": "handoff.md",
+          "sha256": "4137c75631703f51b7d4023ffb5c5d95827b1d157bf231cba32c11c9837fd9a1"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "health",
+      "kind": "commands",
+      "source": "commands/health.md",
+      "capability": "commands",
+      "targets": [
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "03fe5c1c714abe7c27d7cb3c548de7c44279aa8dd710d01292221f385b42896f",
+      "files": [
+        {
+          "path": "health.md",
+          "sha256": "976c8708c4cc5c038b03c7b55f06995219a3644a46632524eca7a8f69266635b"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "learn",
+      "kind": "commands",
+      "source": "commands/learn.md",
+      "capability": "commands",
+      "targets": [
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "b0f6a5078372adb936457cd93728b2da87ba716da1f8570cc6d20491666b433e",
+      "files": [
+        {
+          "path": "learn.md",
+          "sha256": "aae90f8595837a9fbf0ef8d11b4ae35b1cb218e6fdfc191f02fadd264809908f"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "plan",
+      "kind": "commands",
+      "source": "commands/plan.md",
+      "capability": "commands",
+      "targets": [
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "a2edf8cb0a208b63e9c8aca9d4bb39eb37756d3d7fb43618f90d922ed27e9b94",
+      "files": [
+        {
+          "path": "plan.md",
+          "sha256": "3b721ca4048fd4377627185f99f3559372ce471c27f2cf22f889afb5c1114e9c"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "review",
+      "kind": "commands",
+      "source": "commands/review.md",
+      "capability": "commands",
+      "targets": [
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "20a323524a02bec22701af551b8409e441295843913e6a2ffc37fc2d4d2ca8b0",
+      "files": [
+        {
+          "path": "review.md",
+          "sha256": "9034503d995d97885cafcb57de89268f15858006528ab51641b46a3875b6bf85"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "route",
+      "kind": "commands",
+      "source": "commands/route.md",
+      "capability": "commands",
+      "targets": [
+        "claude-code"
+      ],
+      "dependencies": [],
+      "content_hash": "507d245f76507ec4547d2ecf6ce7d497bac156a1e2b852b30783e1de36c3e70b",
+      "files": [
+        {
+          "path": "route.md",
+          "sha256": "6cde7428eafb0f49f9f9e76c94069ba63810623414c58108cce10dbc82381e22"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "ctxora-context-health",
+      "kind": "skills",
+      "source": "skills/ctxora-context-health",
+      "capability": "skills",
+      "targets": [
+        "codex",
+        "claude-code",
+        "cursor",
+        "gemini",
+        "opencode"
+      ],
+      "dependencies": [],
+      "content_hash": "5a2fe30e6dc2a53cd4b9a8cbcaeeeb91e453d06b1fed1909d587c30032b31117",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "a408edbaf91ec58494db72f49e3d74a2f6f80be87bba4d23878b6e6ee5d01a01"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "ctxora-continuous-learning",
+      "kind": "skills",
+      "source": "skills/ctxora-continuous-learning",
+      "capability": "skills",
+      "targets": [
+        "codex",
+        "claude-code",
+        "cursor",
+        "gemini",
+        "opencode"
+      ],
+      "dependencies": [],
+      "content_hash": "2200fbfbce0bfe554f94118a4eb54a1124af09402767e65e1e29f0930457d622",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "c4ac786c3319b861056bb32665ee70612fb2cc3115cd548aaa04b14335bbd40e"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "ctxora-navigation",
+      "kind": "skills",
+      "source": "skills/ctxora-navigation",
+      "capability": "skills",
+      "targets": [
+        "codex",
+        "claude-code",
+        "cursor",
+        "gemini",
+        "opencode"
+      ],
+      "dependencies": [],
+      "content_hash": "4b702d85632b295dbf762ce243dc4fd2b79b135417e04a2807522f89a3d14f1a",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "dae599854b217f594db66561267f2b744ed29d469511003ecc95a6660e08fe30"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "ctxora-repository-context",
+      "kind": "skills",
+      "source": "skills/ctxora-repository-context",
+      "capability": "skills",
+      "targets": [
+        "codex",
+        "claude-code",
+        "cursor",
+        "gemini",
+        "opencode"
+      ],
+      "dependencies": [],
+      "content_hash": "418b6fafbc239cda92accf7bb86d82ab4cb0f098c81ee2b4cc6a57207fb8e24d",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "74200b8c01f4eab64b2641b6cc68acacaef6323598de5770c84541583fc8610f"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "ctxora-setup",
+      "kind": "skills",
+      "source": "skills/ctxora-setup",
+      "capability": "skills",
+      "targets": [
+        "codex",
+        "claude-code",
+        "cursor",
+        "gemini",
+        "opencode"
+      ],
+      "dependencies": [],
+      "content_hash": "b258ba97c4c677e479672b2b3ccc0add02c8ceedaa72b1fa30d388458ad5f318",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "3d9a70fee7b70325de97ce2dfcd62d96a36dd8dd4d88e7dc58d7f618f17dae5f"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "ctxora-workflow-profiles",
+      "kind": "skills",
+      "source": "skills/ctxora-workflow-profiles",
+      "capability": "skills",
+      "targets": [
+        "codex",
+        "claude-code",
+        "cursor",
+        "gemini",
+        "opencode"
+      ],
+      "dependencies": [],
+      "content_hash": "b1e27ec30264ec62c510db75efc37be563eff99007f4641ed53732c3693b72ff",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "7209f787d97c70763aa5d6092dcdfdf0f9ef0505c95ddaaee1b0a964b75faa27"
+        }
+      ],
+      "provenance": {
+        "origin": "ctxora",
+        "source": "ctxora-engine",
+        "license": "MIT"
+      }
+    }
+  ]
+}

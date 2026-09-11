@@ -114,6 +114,16 @@ npx ctxora doctor --workspace /duong-dan/toi/project
 
 Npm launcher không có dependency ngoài, đóng gói source Python MIT và cài CTXORA Engine vào environment local theo version. Không cần cài Python package global hoặc tạo cloud account. Máy cần có sẵn Python 3.10–3.13.
 
+Từ `6.5.0`, phiên npm launcher chạy tương tác sẽ kiểm tra release stable mới tối đa một lần mỗi 24 giờ và chỉ hiện thông báo. Có thể tắt bằng `CTXORA_NO_UPDATE_CHECK=1`. CTXORA không bao giờ tự apply update ngầm:
+
+```bash
+ctxora update check --workspace .
+ctxora update plan --workspace .
+ctxora update apply <plan-digest> --workspace . --yes
+```
+
+Apply chỉ dùng npm version đã xác thực, kiểm tra global installation, cài lại MCP profile thuộc ownership của CTXORA và skill target dùng profile mặc định, đồng thời rollback nếu lỗi. Skill selection đã tùy biến luôn được giữ lại để người dùng review thủ công.
+
 Nếu muốn có shell command lâu dài:
 
 ```bash
@@ -184,11 +194,13 @@ ctxora skills install --workspace . --profile developer \
   --target codex --target claude --target cursor --target gemini
 ```
 
-Target mặc định là `.agents/skills` tương thích Codex. Có thể lặp `--target codex|claude|cursor|gemini|opencode`, dùng `--target all`, hoặc `--output` cho thư mục tùy chỉnh. Preview không sửa file. Install không ghi đè skill đã chỉnh sửa nếu chưa truyền `--force`; `--prune` chỉ xóa skill chưa bị sửa và trước đó do CTXORA cài. Xem provenance và license tại `THIRD_PARTY_NOTICES.md`.
+Mặc định CTXORA dùng catalog dùng chung trong runtime: `--target all` chỉ ghi profile workspace và năm receipt nhẹ, không copy toàn bộ catalog vào từng host. Dùng `route_skills` hoặc `prepare_context` để inject đúng instruction cần thiết. `--delivery materialized` là chế độ tương thích phải bật rõ ràng cho host cần file cục bộ; cần `--prune` để migrate bản cũ và chỉ xóa skill chưa bị sửa do CTXORA sở hữu. Preview không sửa file và skill đã tùy biến không bao giờ bị ghi đè. Xem provenance và license tại `THIRD_PARTY_NOTICES.md`.
 
 ### Command và agent role
 
 Hướng dẫn chính nằm trong `skills/`: dùng `ctxora-navigation` để chọn workflow, `ctxora-workflow-profiles` để chọn và tùy biến ECC skill profile, và `ctxora-continuous-learning` để lưu lesson đã kiểm chứng. Tra routing tại `docs/COMMAND-SKILL-MAP.md`. Skill profile độc lập với client install profile như `codex` hoặc `cursor`.
+
+Skill reranking được giới hạn theo project và dựa trên outcome. Task đã route sẽ xuất hiện dưới dạng fingerprint-only pending cho đến khi `skill_feedback` ghi nhận kết quả đã kiểm chứng; CTXORA không tự suy luận success từ thay đổi Git và không lưu raw prompt. Dùng `ctxora skills learning --workspace .` hoặc Console local để xem task hoàn tất, route đang chờ và tín hiệu boost/penalty hiện tại.
 
 CTXORA cũng cung cấp các template workflow chủ động, lấy cảm hứng từ cách ECC dùng command-first:
 
@@ -239,10 +251,12 @@ Chọn role theo nhu cầu:
 | Nhu cầu | Role | Khi dùng |
 |---|---|---|
 | Lấy context repository | `ctxora-context-engineer` | Task liên quan repository lạ hoặc nhiều file. |
+| Lập kế hoạch triển khai | `ctxora-planner` | Cần file, dependency, rủi ro, test và tiêu chí hoàn tất trước khi sửa. |
+| Nghiên cứu một câu hỏi | `ctxora-researcher` | Cần bằng chứng trong repo và nguồn sơ cấp được ghi rõ. |
 | Review thay đổi | `ctxora-reviewer` | Cần finding, không cần agent tự sửa. |
 | Quản trị setup và session | `ctxora-maintainer` | Cần index, chẩn đoán, memory hoặc handoff. |
 
-Đây là role prompt, không phải các LLM riêng. Agent của host vẫn chịu trách nhiệm chỉnh sửa; CTXORA cung cấp context cục bộ, memory và handoff. Template agent nằm trong `agents/`.
+Đây là role prompt, không phải các LLM riêng. Agent của host vẫn chịu trách nhiệm chỉnh sửa; CTXORA cung cấp context cục bộ, memory và handoff. Template canonical được đóng gói trong `src/harness_context/artifacts/canonical/`; `agents/`, `commands/` và `skills/` là projection tương thích được tạo cho Claude plugin và hệ sinh thái npm.
 
 Nếu host đã nạp các agent, yêu cầu rõ: "Dùng agent ctxora-reviewer review thay đổi chưa commit; chỉ báo finding, không sửa code." Nếu chưa nạp, yêu cầu assistant hiện tại thực hiện vai trò đó; không mặc định có agent riêng được khởi chạy. Với feature: `plan` → triển khai và chạy test của project → `review`. Với bug: tái hiện lỗi trước, lấy context liên quan rồi mới sửa.
 
@@ -341,6 +355,8 @@ ctxora repair --workspace .
 | `repo-map` | Tạo repository map cô đọng. |
 | `inspect` | Xem workspace, snapshot, bundle hoặc ECC state. |
 | `doctor`, `repair` | Chẩn đoán hoặc build lại local state. |
+| `dashboard` | Mở CTXORA Console loopback với view đã redact và action allowlist theo plan/confirm. |
+| `update check`, `update plan`, `update apply` | Kiểm tra, preview và xác nhận npm update có verify/rollback. |
 | `export` | Export snapshot ra JSON. |
 | `profile` | Liệt kê coding-agent profile được hỗ trợ. |
 | `install`, `uninstall` | Thêm hoặc gỡ cấu hình MCP client an toàn. |

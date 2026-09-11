@@ -1,0 +1,9 @@
+{
+  "codex": {"skill_root": ".agents/skills", "config": "~/.codex/config.toml"},
+  "claude": {"canonical_id": "claude-code", "skill_root": ".claude/skills", "config": "~/.claude.json"},
+  "cursor": {"skill_root": ".cursor/skills", "config": "~/.cursor/mcp.json"},
+  "gemini": {"skill_root": ".gemini/skills", "config": null},
+  "opencode": {"skill_root": ".opencode/skills", "config": null},
+  "generic-mcp": {"skill_root": null, "config": "~/.config/mcp/servers.json"}
+}
+

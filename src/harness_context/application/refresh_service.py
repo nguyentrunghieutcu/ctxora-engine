@@ -21,5 +21,18 @@ class RefreshService:
 
     def invalidate(self, workspace_id: str, target: str) -> dict:
         result = self.engine.invalidate(workspace_id, target)
-        self.snapshots.promote(self.engine.export_snapshot(workspace_id))
+        if result["status"] == "ready":
+            self.snapshots.promote(self.engine.export_snapshot(workspace_id))
+        else:
+            self.snapshots.clear_active(workspace_id)
         return result
+
+    def repair(self, workspace_id: str) -> dict:
+        active = self.engine.export_snapshot(workspace_id)
+        if active["status"] == "ready":
+            self.engine.invalidate(workspace_id, "all")
+        try:
+            return self.execute(workspace_id)
+        except Exception:
+            self.engine.load_snapshot(active)
+            raise

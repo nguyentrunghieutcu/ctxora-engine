@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ctxora-engine"
-version = "6.4.0"
+version = "6.5.1"
 description = "Local-first context engine for coding agents."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -38,7 +38,13 @@ include = ["harness_context*", "chunking*", "compact*", "context*", "memory*", "
 exclude = ["harness_context.skills.ecc*"]
 
 [tool.setuptools.package-data]
-harness_context = ["skills/ecc_catalog.json", "skills/ecc/**/*"]
+harness_context = [
+  "artifacts/canonical/**/*",
+  "artifacts/manifests/*.json",
+  "artifacts/schemas/*.json",
+  "skills/ecc_catalog.json",
+  "skills/ecc/**/*",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -57,6 +63,10 @@ exclude = ["src/harness_context/skills/ecc"]
 "src/chunking/treesitter_chunker.py" = ["BLE001"]
 "src/compact/gemini.py" = ["SIM102"]
 "src/compact/openai.py" = ["BLE001"]
+"src/harness_context/infrastructure/chunking/treesitter_chunker.py" = ["BLE001"]
+"src/harness_context/infrastructure/compact/gemini.py" = ["SIM102"]
+"src/harness_context/infrastructure/compact/openai.py" = ["BLE001"]
+"src/harness_context/interfaces/mcp/legacy_server.py" = ["BLE001", "G201"]
 "src/harness_context/domain/planning.py" = ["RUF012"]
 "src/harness_context/server.py" = ["BLE001", "G201"]
 "src/harness_context/watcher/service.py" = ["BLE001", "S112"]
