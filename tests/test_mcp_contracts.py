@@ -33,3 +33,17 @@ class McpContractTests(unittest.TestCase):
         payload = error_payload(ValueError("bad request"))
         self.assertEqual("2.0", payload["api_version"])
         self.assertEqual(ErrorCode.INVALID_REQUEST.value, payload["error"]["code"])
+
+    def test_context_tools_accept_the_canonical_workspace_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "README.md").write_text("path-addressable context", "utf-8")
+            container = build_container(root)
+            workspace_id = next(iter(container.engine.states))
+            container.refresh.execute(workspace_id)
+            server = legacy_factory(container, workspace_id)
+            result = server._tool_manager._tools["retrieve_context"].fn(
+                str(root), "path-addressable", token_budget=1_000
+            )
+            self.assertEqual(workspace_id, result["workspace_id"])
+            self.assertTrue(result["items"])

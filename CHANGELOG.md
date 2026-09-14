@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.5.3 — 2026-09-14
+
+- Fixed MCP context tools accepting a canonical workspace path and resolving it to the active workspace identity.
+- Added regression coverage for path-addressable `retrieve_context` requests.
+
 ## 6.5.2 — 2026-09-14
 
 - Added target-aware agent instruction generation during install for Codex, Claude Code, Cursor, generic MCP clients, and Copilot.
