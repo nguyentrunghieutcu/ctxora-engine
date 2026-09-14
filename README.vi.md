@@ -93,6 +93,10 @@ ctxora generate-copilot-instructions --workspace .
 ctxora generate-cursor-rules --workspace .
 ```
 
+Dùng `ctxora install --workspace . --profile claude-code --generate-instructions` để sinh thêm policy CTXORA dùng chung. `--dry-run` chỉ xem trước; nếu instruction file đã tồn tại, lệnh dừng trước khi sửa MCP config. Uninstall giữ lại instruction file.
+
+Target `codex`/`generic-mcp` sinh `AGENTS.md`, `claude-code` sinh `CLAUDE.md`, `cursor` sinh `.cursor/rules/ctxora.mdc`. Không có option này, install chỉ cấu hình MCP. Có thể sinh riêng bằng `ctxora generate-agents-md --target claude-code --workspace .`; target `copilot` sinh `.github/copilot-instructions.md`. Các generator cũ vẫn hoạt động. Với `generic-mcp`, việc tự đọc `AGENTS.md` phụ thuộc client.
+
 Các instruction file được sinh theo cách deterministic và không ghi đè file hiện có nếu thiếu `--force`.
 
 ### An toàn và vận hành
@@ -539,3 +543,4 @@ ctxora repair --workspace .
 ## License
 
 CTXORA Engine được phát hành theo [MIT License](LICENSE).
+Policy được sinh cũng chọn lọc các thực hành phù hợp từ ECC: lập plan cho thay đổi lớn, review sau chỉnh sửa, kiểm tra security ở boundary nhạy cảm, ưu tiên skills làm workflow chính và checkpoint trước 20% context cuối. Không áp đặt số lượng agent, TDD bắt buộc hay coverage cố định của ECC lên mọi repository.

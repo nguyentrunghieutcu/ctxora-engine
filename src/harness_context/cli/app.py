@@ -27,6 +27,14 @@ from harness_context.runtime import HarnessRuntime
 from harness_context.skills import SkillCatalog, SkillRouter
 from harness_context.workspace.identity import workspace_identity
 
+INSTRUCTION_TARGETS = {
+    "codex": ("AGENTS.md", "AGENTS.md"),
+    "claude-code": ("CLAUDE.md", "Claude Code"),
+    "cursor": (".cursor/rules/ctxora.mdc", "Cursor"),
+    "generic-mcp": ("AGENTS.md", "AGENTS.md"),
+    "copilot": (".github/copilot-instructions.md", "GitHub Copilot"),
+}
+
 
 def _runtime(args) -> HarnessRuntime:
     if args.host and args.host not in {"127.0.0.1", "localhost", "::1"} and not args.allow_external:
@@ -69,6 +77,10 @@ def build_parser() -> argparse.ArgumentParser:
         if name in {"generate-agents-md", "generate-copilot-instructions", "generate-cursor-rules"}:
             command.add_argument("--output")
             command.add_argument("--force", action="store_true")
+        if name == "generate-agents-md":
+            command.add_argument("--target", choices=tuple(INSTRUCTION_TARGETS), default="codex")
+        if name == "install":
+            command.add_argument("--generate-instructions", action="store_true")
         if name == "inspect":
             command.add_argument("target", choices=("workspace", "snapshot", "bundle", "ecc"), default="workspace", nargs="?")
         if name == "index":
@@ -236,8 +248,25 @@ def _main(argv: list[str] | None = None) -> int:
     if args.command == "install":
         if not args.profile:
             raise SystemExit("install requires --profile")
+        instruction = None
+        if args.generate_instructions:
+            relative, target = INSTRUCTION_TARGETS[args.profile]
+            output = root / relative
+            if output.exists():
+                raise FileExistsError(f"refusing to overwrite existing instructions: {output}")
+            instruction = {"target": target, "output": str(output)}
+            if not args.dry_run:
+                runtime = _runtime(args)
+                runtime.startup()
+                snapshot = runtime.container.engine.export_snapshot(runtime.config.workspace_id)
+                content = instruction_document(snapshot, root, target)
         plan = ClientInstaller(root).install(args.profile, args.client_config, args.dry_run)
-        _print({"status": "planned" if args.dry_run else "installed", "plan": plan.to_dict()})
+        if instruction and not args.dry_run:
+            write_instruction(output, content)
+        result = {"status": "planned" if args.dry_run else "installed", "plan": plan.to_dict()}
+        if instruction:
+            result["instructions"] = instruction
+        _print(result)
         return 0
     if args.command == "register":
         runtime = _runtime(args)
@@ -333,6 +362,9 @@ def _main(argv: list[str] | None = None) -> int:
     }
     if args.command in generators:
         default_output, target = generators[args.command]
+        if args.command == "generate-agents-md":
+            relative, target = INSTRUCTION_TARGETS[args.target]
+            default_output = root / relative
         output = Path(args.output).expanduser().resolve() if args.output else default_output
         write_instruction(output, instruction_document(snapshot, root, target), args.force)
         _print({"status": "generated", "target": target, "output": str(output), "snapshot_id": snapshot["snapshot_id"]})

@@ -95,6 +95,12 @@ ctxora generate-cursor-rules --workspace .
 
 Generated instruction files are deterministic and are never overwritten unless `--force` is provided.
 
+Use `ctxora install --workspace . --profile claude-code --generate-instructions` to also generate the shared CTXORA context policy. `--dry-run` previews the instruction path without writing. Existing instructions cause a conflict before MCP configuration changes; install never overwrites them. Generated instructions are retained on uninstall.
+
+Targets: `codex` and `generic-mcp` write `AGENTS.md`, `claude-code` writes `CLAUDE.md`, and `cursor` writes `.cursor/rules/ctxora.mdc`. Install without this option still only configures MCP. For standalone generation, use `ctxora generate-agents-md --target claude-code --workspace .`; `--target copilot` writes `.github/copilot-instructions.md`. Existing dedicated generators remain supported. The generic MCP target does not guarantee that a particular client loads `AGENTS.md` automatically.
+
+The generated policy selectively incorporates compatible ECC practices: plan complex changes, review meaningful edits, apply security checks at sensitive boundaries, prefer skills as the canonical workflow surface, and checkpoint before the final 20% of context. ECC-specific agent counts, mandatory TDD, and universal coverage targets are not imposed on every repository.
+
 ### Safety and operations
 
 - Canonical workspace-root authorization and symlink-escape rejection.

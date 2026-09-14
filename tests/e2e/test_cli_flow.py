@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 
@@ -14,6 +14,49 @@ from harness_context.runtime import HarnessRuntime
 
 
 class CliEndToEndTests(unittest.TestCase):
+    def test_install_generates_only_selected_target_and_preserves_existing_instructions(self):
+        targets = {
+            "codex": "AGENTS.md",
+            "claude-code": "CLAUDE.md",
+            "cursor": ".cursor/rules/ctxora.mdc",
+            "generic-mcp": "AGENTS.md",
+        }
+        for profile, relative in targets.items():
+            with self.subTest(profile=profile), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                config = root / ("client.toml" if profile == "codex" else "client.json")
+                arguments = ("install", "--workspace", str(root), "--profile", profile,
+                             "--client-config", str(config), "--generate-instructions")
+                preview = self.run_cli(*arguments, "--dry-run")
+                self.assertEqual(preview["instructions"]["output"], str((root / relative).resolve()))
+                self.assertFalse(config.exists(), "preview must not install MCP configuration")
+                self.assertFalse((root / ".ctxora").exists(), "preview must not initialize indexing")
+                self.assertFalse((root / relative).exists())
+                self.run_cli(*arguments)
+                content = (root / relative).read_text("utf-8")
+                for tool in ("prepare_context", "memory_search", "refresh_workspace", "handoff_conversation", "security"):
+                    self.assertIn(tool, content, "every target needs the shared context policy")
+                for other in set(targets.values()) - {relative}:
+                    self.assertFalse((root / other).exists(), "install must not fan out to other agents")
+                if profile == "cursor":
+                    self.assertTrue(content.startswith("---\n"))
+                (root / relative).write_text("User-owned instructions\n", "utf-8")
+                config_before = config.read_bytes()
+                with redirect_stderr(StringIO()):
+                    self.assertNotEqual(main(list(arguments)), 0)
+                self.assertEqual((root / relative).read_text("utf-8"), "User-owned instructions\n")
+                self.assertEqual(config.read_bytes(), config_before)
+
+    def test_generate_agents_target_and_output_override(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = self.run_cli("generate-agents-md", "--workspace", str(root), "--target", "claude-code")
+            self.assertEqual(result["output"], str((root / "CLAUDE.md").resolve()))
+            custom = root / "custom.md"
+            self.run_cli("generate-agents-md", "--workspace", str(root), "--target", "copilot", "--output", str(custom))
+            self.assertIn("GitHub Copilot", custom.read_text("utf-8"))
+            self.assertFalse((root / "AGENTS.md").exists())
+
     def run_cli(self, *arguments: str) -> dict:
         output = StringIO()
         with redirect_stdout(output):

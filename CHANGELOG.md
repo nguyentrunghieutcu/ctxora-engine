@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.5.0 — 2026-09-14
+
+- Added target-aware instruction generation during install for Codex, Claude Code, Cursor, generic MCP clients, and Copilot.
+- Added compact CTXORA context, memory, checkpoint, handoff, security, and review guidance to generated agent instructions.
+- Added conflict-safe previews and regression coverage so install never overwrites existing instruction files or fans out to unselected targets.
+- Incorporated compatible ECC workflow practices without imposing ECC-specific agent counts, mandatory TDD, or universal coverage targets.
+
 ## 6.4.0 — 2026-09-08
 
 - Added explicit Codex, Claude, Cursor, Gemini, and OpenCode project skill targets with multi-target preview, ownership, conflict protection, and pruning.
