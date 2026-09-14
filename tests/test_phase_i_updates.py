@@ -120,7 +120,7 @@ class UpdateServiceTests(unittest.TestCase):
         lock = json.loads((repository / "package-lock.json").read_text("utf-8"))
         pyproject = (repository / "pyproject.toml").read_text("utf-8")
         launcher = (repository / "bin" / "ctxora.mjs").read_text("utf-8")
-        self.assertEqual("6.5.1", package["version"])
+        self.assertEqual("6.5.2", package["version"])
         self.assertEqual("6.5.1", lock["version"])
         self.assertRegex(pyproject, re.compile(r'^version = "6\.5\.1"$', re.MULTILINE))
         self.assertIn('const PACKAGE_VERSION = "6.5.1"', launcher)

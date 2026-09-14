@@ -20,10 +20,10 @@ test("accepts only supported CPython minor versions", () => {
 });
 
 test("compares stable release versions deterministically", () => {
-  assert.equal(compareVersions("6.4.0", "6.5.1"), -1);
-  assert.equal(compareVersions("6.5.1", "6.5.1"), 0);
-  assert.equal(compareVersions("7.0.0", "6.5.1"), 1);
-  assert.equal(compareVersions("latest", "6.5.1"), null);
+  assert.equal(compareVersions("6.4.0", "6.5.2"), -1);
+  assert.equal(compareVersions("6.5.2", "6.5.2"), 0);
+  assert.equal(compareVersions("7.0.0", "6.5.2"), 1);
+  assert.equal(compareVersions("latest", "6.5.2"), null);
 });
 
 test("falls back to a supported versioned Python executable", { skip: process.platform === "win32" }, () => {
@@ -49,7 +49,7 @@ test("reports the npm package version without installing Python", () => {
     encoding: "utf8",
   });
   assert.equal(result.status, 0);
-  assert.equal(result.stdout.trim(), "6.5.1");
+  assert.equal(result.stdout.trim(), "6.5.2");
 });
 
 test("runs through an npm-style executable symlink", { skip: process.platform === "win32" }, () => {
@@ -58,16 +58,16 @@ test("runs through an npm-style executable symlink", { skip: process.platform ==
   symlinkSync(CLI, executable);
   const result = spawnSync(executable, ["--version"], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout.trim(), "6.5.1");
+  assert.equal(result.stdout.trim(), "6.5.2");
 });
 
 test("passes commands to an existing managed runtime with stable MCP launcher settings", { skip: process.platform === "win32" }, () => {
   const home = mkdtempSync(join(tmpdir(), "ctxora-npm-test-"));
-  const runtime = join(home, "runtime", "6.5.1");
+  const runtime = join(home, "runtime", "6.5.2");
   const python = runtimePython(runtime);
   const capture = join(home, "capture.json");
   mkdirSync(join(runtime, "venv", "bin"), { recursive: true });
-  writeFileSync(join(runtime, "install.json"), '{"packageVersion":"6.5.1"}\n');
+  writeFileSync(join(runtime, "install.json"), '{"packageVersion":"6.5.2"}\n');
   writeFileSync(python, `#!/bin/sh\nprintf '%s' "$CTXORA_MCP_COMMAND|$CTXORA_MCP_ARGS_PREFIX|$*" > "${capture}"\n`);
   spawnSync("chmod", ["+x", python]);
 

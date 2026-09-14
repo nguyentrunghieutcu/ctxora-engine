@@ -75,7 +75,7 @@ class CleanEnvironmentPackagingTests(unittest.TestCase):
                 text=True,
             )
             installed = json.loads(probe.stdout)
-            self.assertEqual(installed["version"], "6.5.1")
+            self.assertEqual(installed["version"], "6.5.2")
             self.assertTrue(installed["module"])
             self.assertTrue(installed["canonical"])
             self.assertTrue(installed["manifest"])
