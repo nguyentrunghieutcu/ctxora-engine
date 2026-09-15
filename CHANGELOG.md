@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.5.4 — 2026-09-15
+
+- Accept canonical workspace paths alongside `ws_<hash>` identities across MCP context, workspace, memory, handoff, and skill tools.
+- Add regression coverage for path-addressable `retrieve_context` requests.
+
 ## 6.5.3 — 2026-09-14
 
 - Fixed MCP context tools accepting a canonical workspace path and resolving it to the active workspace identity.

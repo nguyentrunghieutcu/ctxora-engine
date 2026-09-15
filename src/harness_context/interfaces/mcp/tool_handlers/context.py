@@ -1,29 +1,19 @@
-from pathlib import Path
-
-from harness_context.workspace.identity import workspace_identity
+from harness_context.interfaces.mcp.tool_handlers.workspace_ids import resolve_workspace_id
 
 
 def register_context_tools(mcp, container, default_workspace_id: str) -> None:
-    def resolve_workspace(workspace_id: str) -> str:
-        if workspace_id == default_workspace_id:
-            return workspace_id
-        candidate = Path(workspace_id).expanduser()
-        if candidate.is_dir() and workspace_identity(candidate) == default_workspace_id:
-            return default_workspace_id
-        return workspace_id
-
     @mcp.tool()
     def plan_context(workspace_id: str, query: str, available_input_tokens: int, strategy_override: str = "") -> dict:
-        return container.retrieval.plan(resolve_workspace(workspace_id), query, available_input_tokens, strategy_override)
+        return container.retrieval.plan(resolve_workspace_id(workspace_id, default_workspace_id), query, available_input_tokens, strategy_override)
 
     @mcp.tool()
     def retrieve_context(workspace_id: str, query: str, top_k: int = 12, graph_expand: bool = True, token_budget: int = 4_000) -> dict:
-        return container.retrieval.retrieve(resolve_workspace(workspace_id), query, top_k, graph_expand, token_budget)
+        return container.retrieval.retrieve(resolve_workspace_id(workspace_id, default_workspace_id), query, top_k, graph_expand, token_budget)
 
     @mcp.tool()
     def prepare_context(workspace_id: str, query: str, available_input_tokens: int, preferred_strategy: str = "auto", include_memory: bool = True, include_handoff: bool = False, handoff_id: str = "", include_ecc: bool = False, freshness: str = "current", deadline_ms: int = 5_000) -> dict:
-        return container.context.prepare_values(workspace_id=resolve_workspace(workspace_id), query=query, available_input_tokens=available_input_tokens, preferred_strategy=preferred_strategy, include_memory=include_memory, include_handoff=include_handoff, handoff_id=handoff_id, include_ecc=include_ecc, freshness=freshness, deadline_ms=deadline_ms)
+        return container.context.prepare_values(workspace_id=resolve_workspace_id(workspace_id, default_workspace_id), query=query, available_input_tokens=available_input_tokens, preferred_strategy=preferred_strategy, include_memory=include_memory, include_handoff=include_handoff, handoff_id=handoff_id, include_ecc=include_ecc, freshness=freshness, deadline_ms=deadline_ms)
 
     @mcp.tool()
     def context_stats(workspace_id: str = default_workspace_id) -> dict:
-        return container.retrieval.stats(workspace_id)
+        return container.retrieval.stats(resolve_workspace_id(workspace_id, default_workspace_id))

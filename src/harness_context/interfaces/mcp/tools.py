@@ -11,7 +11,7 @@ from harness_context.interfaces.mcp.tool_handlers import (
 def register_tools(mcp, container, default_workspace_id: str) -> None:
     register_workspace_tools(mcp, container, default_workspace_id)
     register_context_tools(mcp, container, default_workspace_id)
-    register_memory_tools(mcp, container)
-    register_handoff_tools(mcp, container)
+    register_memory_tools(mcp, container, default_workspace_id)
+    register_handoff_tools(mcp, container, default_workspace_id)
     register_ecc_tools(mcp, container)
-    register_skill_tools(mcp, container)
+    register_skill_tools(mcp, container, default_workspace_id)
