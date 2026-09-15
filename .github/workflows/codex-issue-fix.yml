@@ -1,4 +1,4 @@
-name: Codex issue fix
+name: Codex issue handoff
 
 on:
   schedule:
@@ -8,34 +8,25 @@ on:
   workflow_dispatch:
     inputs:
       issue_number:
-        description: "Issue to fix (leave empty to select the oldest codex-ready issue)"
+        description: "Issue to hand off (leave empty to notify about all codex-ready issues)"
         required: false
         type: string
 
 concurrency:
-  group: codex-issue-fix
+  group: codex-issue-handoff
   cancel-in-progress: false
 
 jobs:
-  fix:
+  notify-local-codex:
     if: >-
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
       github.event.label.name == 'codex-ready') &&
       github.repository == 'nguyentrunghieutcu/ctxora-engine'
     runs-on: ubuntu-latest
-    environment: codex-review
     permissions:
-      contents: write
       issues: write
-      pull-requests: write
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Select issue
-        id: issue
+      - name: Notify that local Codex owns execution
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT_ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -43,70 +34,14 @@ jobs:
         run: |
           set -euo pipefail
           issue_number="${INPUT_ISSUE_NUMBER:-}"
-          if [ -z "$issue_number" ] && [ "${{ github.event_name }}" = "labeled" ]; then
-            issue_number="$EVENT_ISSUE_NUMBER"
-          fi
-          if [ -z "$issue_number" ]; then
-            issue_number="$(gh issue list --state open --label codex-ready --limit 1 --json number --jq '.[0].number // empty')"
-          fi
-          if [ -z "$issue_number" ]; then
-            echo "No open issue with label codex-ready."
+          if [ -n "$issue_number" ]; then
+            gh issue comment "$issue_number" --body "Local Scheduled Codex will pick up this issue from the local checkout. Add the codex-approved label when it is ready to run. GitHub Actions does not execute Codex or require an OPENAI_API_KEY."
             exit 0
           fi
-          if gh pr list --state open --search "codex issue #$issue_number" --json number --jq 'length' | grep -q '^0$'; then
-            issue_json="$(gh issue view "$issue_number" --json number,title,body,labels,url)"
-            {
-              echo 'number<<EOF'
-              echo "$issue_number"
-              echo 'EOF'
-              echo 'json<<EOF'
-              echo "$issue_json"
-              echo 'EOF'
-            } >> "$GITHUB_OUTPUT"
-          else
-            echo "An open Codex PR already exists for issue #$issue_number."
+          if [ "${{ github.event_name }}" = "labeled" ]; then
+            gh issue comment "$EVENT_ISSUE_NUMBER" --body "Local Scheduled Codex will pick up this issue from the local checkout. Add the codex-approved label when it is ready to run. GitHub Actions does not execute Codex or require an OPENAI_API_KEY."
             exit 0
           fi
-
-      - name: Run Codex CLI
-        id: codex
-        if: steps.issue.outputs.number != ''
-        uses: openai/codex-action@v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ":workspace"
-          safety-strategy: drop-sudo
-          prompt: |
-            You are fixing GitHub issue #${{ steps.issue.outputs.number }} in this repository.
-            Issue JSON:
-            ${{ steps.issue.outputs.json }}
-
-            Work autonomously but conservatively:
-            1. Inspect the issue and relevant code.
-            2. Implement the smallest root-cause fix.
-            3. Add or update focused tests that encode the expected behavior.
-            4. Run the narrowest relevant tests and formatting checks.
-            5. Do not change unrelated files, secrets, CI permissions, or release metadata.
-            6. Do not merge anything. Leave a clear summary and test results in your final message.
-
-      - name: Create draft pull request
-        if: steps.issue.outputs.number != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
-        run: |
-          set -euo pipefail
-          if git diff --quiet; then
-            gh issue comment "$ISSUE_NUMBER" --body "Codex reviewed this issue but found no code changes to propose."
-            exit 0
-          fi
-          branch="codex/issue-${ISSUE_NUMBER}"
-          git switch -c "$branch"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "fix: address issue #${ISSUE_NUMBER}"
-          git push --set-upstream origin "$branch"
-          gh pr create --draft --title "fix: address issue #${ISSUE_NUMBER}" \
-            --body "Closes #${ISSUE_NUMBER}\n\nCreated by Codex after approval through the codex-review environment.\n\nCodex summary:\n${{ steps.codex.outputs.final-message }}"
-          gh issue comment "$ISSUE_NUMBER" --body "Codex created a draft PR for review. No changes are merged automatically."
+          gh issue list --state open --label codex-ready --limit 20 --json number --jq '.[].number' | while read -r issue_number; do
+            gh issue comment "$issue_number" --body "Local Scheduled Codex is monitoring this issue. Add the codex-approved label when it is ready to run."
+          done

@@ -1,27 +1,31 @@
-# Codex issue autofix
+# Local Codex issue autofix
 
-This repository can turn explicitly approved GitHub issues into draft pull requests.
+GitHub is only the issue/notification surface. Codex CLI runs locally from the Scheduled Codex task, so this repository does not need an `OPENAI_API_KEY` GitHub secret.
 
 ## Safety model
 
-1. A maintainer adds the `codex-ready` label, or starts the workflow manually.
-2. The `codex-review` GitHub Environment pauses the job for its required reviewers.
-3. Codex CLI receives only the selected issue and the checked-out repository.
-4. Codex changes are pushed to a `codex/issue-*` branch and opened as a **draft PR**.
-5. A maintainer reviews, tests, and merges the PR manually. The workflow never merges.
-
-The scheduled run checks for the oldest open `codex-ready` issue every 30 minutes. An existing open PR for the issue prevents duplicate work.
+1. A maintainer adds `codex-ready` to an issue.
+2. A maintainer reviews the issue and adds `codex-approved` as the explicit execution approval.
+3. Scheduled Codex checks the repository every 30 minutes, reads the approved issue through `gh`, and works in this local checkout.
+4. Codex creates a `codex/issue-*` branch, runs focused tests, pushes the branch, and opens a **draft PR**.
+5. GitHub Actions posts status comments only. It never runs Codex, receives an OpenAI key, changes code, or merges anything.
+6. A maintainer reviews and merges the draft PR manually.
 
 ## One-time setup
 
-1. Add repository secret `OPENAI_API_KEY`.
-2. Create the `codex-review` environment in repository settings.
-3. Configure required reviewers for that environment.
-4. Create the `codex-ready` label.
-5. Enable Actions permissions to allow the workflow to create branches, PRs, and issue comments.
+1. Create labels `codex-ready` and `codex-approved`.
+2. Authenticate local `gh` with access to issues, contents, and pull requests: `gh auth login`.
+3. Keep the Scheduled Codex automation `CTXORA Codex issue monitor` active.
+4. Enable Actions permissions for issue comments if GitHub notifications are desired.
 
-For a manual run, use **Actions → Codex issue fix → Run workflow** and optionally provide an issue number.
+No `OPENAI_API_KEY` is required in GitHub repository secrets. The local Codex session uses the local Codex configuration and credentials.
 
-## GitHub App notifications
+## Manual approval flow
 
-GitHub sends issue and pull-request notifications through the normal repository notification settings. Reviewers should watch the repository or subscribe to the `codex-ready` label workflow and draft PRs; no personal token is stored in the repository.
+- Open or update an issue with the requested behavior.
+- Add `codex-ready` when the issue is clear enough to inspect.
+- After reviewing the issue, add `codex-approved` to authorize local execution.
+- Scheduled Codex picks it up, reports progress in the issue, and opens a draft PR.
+- Review the diff and CI results before merging.
+
+The workflow in `.github/workflows/codex-issue-fix.yml` is deliberately limited to GitHub comments. It does not execute untrusted issue text on GitHub-hosted runners.
