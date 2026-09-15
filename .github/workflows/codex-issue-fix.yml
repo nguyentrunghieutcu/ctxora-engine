@@ -1,8 +1,6 @@
 name: Codex issue handoff
 
 on:
-  schedule:
-    - cron: "17,47 * * * *"
   issues:
     types: [labeled]
   workflow_dispatch:
@@ -19,7 +17,7 @@ concurrency:
 jobs:
   notify-local-codex:
     if: >-
-      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' ||
       github.event.label.name == 'codex-ready') &&
       github.repository == 'nguyentrunghieutcu/ctxora-engine'
     runs-on: ubuntu-latest
