@@ -1,5 +1,6 @@
 #!/bin/zsh
 set -euo pipefail
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 
 repo="${CTXORA_REPO:-nguyentrunghieutcu/ctxora-engine}"
 root="${CTXORA_WORKSPACE:-/Users/hieu/Workspaces/Projects/Modoro/compact-token}"
@@ -9,7 +10,7 @@ mkdir -p "$log_dir"
 exec >>"$log_dir/ctxora-issue-monitor.log" 2>&1
 
 cd "$root"
-issue_number="$(gh issue list --repo "$repo" --state open --label codex-approved --limit 20 --json number,labels --jq '.[] | select(([.labels[].name] | index("codex-blocked")) | not) | .number' | head -n 1)"
+issue_number="$(gh issue list --repo "$repo" --state open --limit 100 --json number,labels --jq '.[] | select(([.labels[].name] | index("codex-approved")) and (([.labels[].name] | index("codex-ready")) or ([.labels[].name] | index("codex_ready"))) and (([.labels[].name] | index("codex-blocked")) | not)) | .number' | head -n 1)"
 [ -n "$issue_number" ] || exit 0
 
 if gh pr list --repo "$repo" --state open --search "codex issue #$issue_number" --json number --jq 'length' | grep -qv '^0$'; then
