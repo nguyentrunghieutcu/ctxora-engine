@@ -18,7 +18,7 @@ jobs:
   notify-local-codex:
     if: >-
       (github.event_name == 'workflow_dispatch' ||
-      github.event.label.name == 'codex-ready') &&
+      (github.event.label.name == 'codex-ready' || github.event.label.name == 'codex_ready')) &&
       github.repository == 'nguyentrunghieutcu/ctxora-engine'
     runs-on: ubuntu-latest
     permissions:

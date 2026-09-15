@@ -13,7 +13,7 @@ GitHub is only the issue/notification surface. Codex CLI runs locally from the S
 
 ## One-time setup
 
-1. Create labels `codex-ready` and `codex-approved`.
+1. Create labels `codex-ready` and `codex-approved`. The legacy spelling `codex_ready` is also accepted for compatibility.
 2. Authenticate local `gh` with access to issues, contents, and pull requests: `gh auth login`.
 3. Keep the Scheduled Codex automation `CTXORA Codex issue monitor` active.
 4. Enable Actions permissions for issue comments if GitHub notifications are desired.
