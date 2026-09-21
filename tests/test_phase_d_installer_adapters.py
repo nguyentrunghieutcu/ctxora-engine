@@ -7,7 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 
-from harness_context.adapters.clients import PROFILES, get_formatter
+from harness_context.adapters.clients import PROFILES, get_formatter, get_profile
 from harness_context.installer import ClientInstaller
 
 
@@ -99,6 +99,10 @@ class PhaseDInstallerAdapterTests(unittest.TestCase):
             self.assertEqual("conflict", plan.mutations[0].operation)
             self.assertEqual("user-command", json.loads(config.read_text("utf-8"))["mcpServers"]["ctxora"]["command"])
             self.assertTrue(installer.ownership_path.exists())
+
+    def test_unsupported_client_profile_raises_with_available_profiles(self):
+        with self.assertRaisesRegex(ValueError, r"unknown client profile: router\. Available profiles: .*codex"):
+            get_profile("router")
 
     def test_npm_launcher_can_pin_mcp_to_its_managed_python_runtime(self):
         with tempfile.TemporaryDirectory() as directory:

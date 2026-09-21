@@ -187,6 +187,12 @@ class SkillCatalogTests(unittest.TestCase):
             self.assertFalse((workspace / ".claude" / "skills" / "api-design").exists())
             self.assertEqual([], list((workspace / ".ctxora" / "installer").glob("*.json")))
 
+    def test_unsupported_profile_raises_with_available_profiles(self):
+        with self.assertRaisesRegex(ValueError, r"unknown skills profile: router\. Available profiles: .*developer"):
+            self.catalog.select("router")
+        with self.assertRaisesRegex(ValueError, r"unknown skills profile: router\. Available profiles: .*developer"):
+            self.catalog._profile_skills("router")
+
     def test_cli_profiles_reports_machine_readable_catalog(self):
         with tempfile.TemporaryDirectory() as directory:
             output = StringIO()

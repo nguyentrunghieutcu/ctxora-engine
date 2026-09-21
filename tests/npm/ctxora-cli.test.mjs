@@ -49,7 +49,7 @@ test("reports the npm package version without installing Python", () => {
     encoding: "utf8",
   });
   assert.equal(result.status, 0);
-  assert.equal(result.stdout.trim(), "6.5.4");
+  assert.equal(result.stdout.trim(), "6.5.5");
 });
 
 test("runs through an npm-style executable symlink", { skip: process.platform === "win32" }, () => {
@@ -58,16 +58,16 @@ test("runs through an npm-style executable symlink", { skip: process.platform ==
   symlinkSync(CLI, executable);
   const result = spawnSync(executable, ["--version"], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout.trim(), "6.5.4");
+  assert.equal(result.stdout.trim(), "6.5.5");
 });
 
 test("passes commands to an existing managed runtime with stable MCP launcher settings", { skip: process.platform === "win32" }, () => {
   const home = mkdtempSync(join(tmpdir(), "ctxora-npm-test-"));
-  const runtime = join(home, "runtime", "6.5.4");
+  const runtime = join(home, "runtime", "6.5.5");
   const python = runtimePython(runtime);
   const capture = join(home, "capture.json");
   mkdirSync(join(runtime, "venv", "bin"), { recursive: true });
-  writeFileSync(join(runtime, "install.json"), '{"packageVersion":"6.5.4"}\n');
+  writeFileSync(join(runtime, "install.json"), '{"packageVersion":"6.5.5"}\n');
   writeFileSync(python, `#!/bin/sh\nprintf '%s' "$CTXORA_MCP_COMMAND|$CTXORA_MCP_ARGS_PREFIX|$*" > "${capture}"\n`);
   spawnSync("chmod", ["+x", python]);
 

@@ -106,7 +106,7 @@ class UpdateServiceTests(unittest.TestCase):
                     service.plan()
 
     def test_release_version_and_update_cli_contract(self):
-        self.assertEqual("6.5.4", __version__)
+        self.assertEqual("6.5.5", __version__)
         check = build_parser().parse_args(["update", "check", "--workspace", ".", "--force"])
         apply = build_parser().parse_args(["update", "apply", "abc", "--workspace", ".", "--yes"])
         self.assertEqual("check", check.update_action)
@@ -120,10 +120,10 @@ class UpdateServiceTests(unittest.TestCase):
         lock = json.loads((repository / "package-lock.json").read_text("utf-8"))
         pyproject = (repository / "pyproject.toml").read_text("utf-8")
         launcher = (repository / "bin" / "ctxora.mjs").read_text("utf-8")
-        self.assertEqual("6.5.4", package["version"])
-        self.assertEqual("6.5.4", lock["version"])
-        self.assertRegex(pyproject, re.compile(r'^version = "6\.5\.4"$', re.MULTILINE))
-        self.assertIn('const PACKAGE_VERSION = "6.5.4"', launcher)
+        self.assertEqual("6.5.5", package["version"])
+        self.assertEqual("6.5.5", lock["version"])
+        self.assertRegex(pyproject, re.compile(r'^version = "6\.5\.5"$', re.MULTILINE))
+        self.assertIn('const PACKAGE_VERSION = "6.5.5"', launcher)
 
     def test_console_action_creates_durable_update_plan_without_applying(self):
         runtime = HarnessRuntime.for_workspace(str(self.root))

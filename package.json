@@ -1,6 +1,6 @@
 {
   "name": "ctxora",
-  "version": "6.5.4",
+  "version": "6.5.5",
   "description": "Local-first context engine for coding agents.",
   "type": "module",
   "bin": {

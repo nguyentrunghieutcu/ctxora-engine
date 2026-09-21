@@ -164,6 +164,33 @@ class SkillRouterTests(unittest.TestCase):
             self.assertNotIn("instructions", skills["recommendations"][0])
             self.assertEqual("after_validation", skills["feedback_policy"]["mode"])
 
+    def test_unsupported_profile_rejected_with_available_profiles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            router = self.router(Path(directory))
+            with self.assertRaisesRegex(ValueError, r"unknown skills profile: router\. Available profiles: .*developer"):
+                router.route(router.workspace_id, "Design an API", profile="router")
+
+    def test_invalid_configured_profile_rejected_with_available_profiles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_config = root / ".ctxora" / "skills-profile.json"
+            profile_config.parent.mkdir(parents=True)
+            profile_config.write_text('{"profile": "router", "skills": []}', "utf-8")
+            router = self.router(root)
+            with self.assertRaisesRegex(ValueError, r"unknown skills profile: router\. Available profiles: .*developer"):
+                router.route(router.workspace_id, "Design an API")
+
+    def test_route_enforces_post_task_self_evaluation_policy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            router = self.router(Path(directory))
+            result = router.route(router.workspace_id, "Design a stable API", "developer", top_k=2)
+            policy = result["feedback_policy"]
+            self.assertTrue(policy["trigger_self_evaluation"])
+            self.assertEqual(
+                ["accuracy", "completeness", "clarity", "actionability", "conciseness"],
+                policy["evaluation_axes"],
+            )
+
     def test_feedback_rejects_wrong_workspace_and_invalid_routes(self):
         with tempfile.TemporaryDirectory() as directory:
             router = self.router(Path(directory))

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const PACKAGE_VERSION = "6.5.4";
+const PACKAGE_VERSION = "6.5.5";
 const PYTHON_RANGE = "3.10-3.13";
 const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const UPDATE_CHECK_TTL_MS = 24 * 60 * 60 * 1000;
@@ -146,6 +146,36 @@ function installRuntime(systemPython, runtimeDirectory) {
   writeFileSync(join(staging, "install.json"), `${JSON.stringify({ packageVersion: PACKAGE_VERSION }, null, 2)}\n`);
   rmSync(runtimeDirectory, { recursive: true, force: true });
   renameSync(staging, runtimeDirectory);
+  fixShebangs(runtimeDirectory);
+}
+
+function fixShebangs(runtimeDirectory) {
+  const binDir = process.platform === "win32"
+    ? join(runtimeDirectory, "venv", "Scripts")
+    : join(runtimeDirectory, "venv", "bin");
+  const targetPython = runtimePython(runtimeDirectory);
+  if (!existsSync(binDir)) return;
+  try {
+    for (const file of readdirSync(binDir)) {
+      const fullPath = join(binDir, file);
+      try {
+        const stat = lstatSync(fullPath);
+        if (!stat.isFile() || stat.isSymbolicLink()) continue;
+        const buffer = readFileSync(fullPath);
+        if (buffer.length > 2 && buffer[0] === 0x23 && buffer[1] === 0x21) {
+          const newlineIndex = buffer.indexOf(0x0a);
+          if (newlineIndex !== -1) {
+            const firstLine = buffer.subarray(0, newlineIndex).toString("utf8");
+            if (firstLine.includes("python") && firstLine !== `#!${targetPython}`) {
+              const remaining = buffer.subarray(newlineIndex);
+              const newHeader = Buffer.from(`#!${targetPython}`);
+              writeFileSync(fullPath, Buffer.concat([newHeader, remaining]));
+            }
+          }
+        }
+      } catch {}
+    }
+  } catch {}
 }
 
 export function ensureRuntime() {

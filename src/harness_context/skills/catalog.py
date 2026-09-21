@@ -60,7 +60,8 @@ class SkillCatalog:
         remove_skills: tuple[str, ...] = (),
     ) -> SkillSelection:
         if profile not in self.profiles:
-            raise ValueError(f"unknown skills profile: {profile}")
+            available = ", ".join(sorted(self.profiles))
+            raise ValueError(f"unknown skills profile: {profile}. Available profiles: {available}")
         modules = list(self.profiles[profile]["modules"])
         for module in add_modules:
             self._require_module(module)
@@ -441,6 +442,9 @@ class SkillCatalog:
         return digest.hexdigest()
 
     def _profile_skills(self, profile: str) -> set[str]:
+        if profile not in self.profiles:
+            available = ", ".join(sorted(self.profiles))
+            raise ValueError(f"unknown skills profile: {profile}. Available profiles: {available}")
         selected: set[str] = set()
         for module in self.profiles[profile]["modules"]:
             selected.update(self.modules[module]["skills"])

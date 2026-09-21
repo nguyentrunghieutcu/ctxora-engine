@@ -286,11 +286,11 @@
         "claude-code"
       ],
       "dependencies": [],
-      "content_hash": "507d245f76507ec4547d2ecf6ce7d497bac156a1e2b852b30783e1de36c3e70b",
+      "content_hash": "f2776f1fbb61e3c769c8f739a9c14960bb23aa8fae3094e8e3b7714d31ab1c59",
       "files": [
         {
           "path": "route.md",
-          "sha256": "6cde7428eafb0f49f9f9e76c94069ba63810623414c58108cce10dbc82381e22"
+          "sha256": "de47ac862e00f7776cc53d88ec0bdf38c941e1c189458c7d47f23aff3b172cd9"
         }
       ],
       "provenance": {
@@ -338,11 +338,11 @@
         "opencode"
       ],
       "dependencies": [],
-      "content_hash": "2200fbfbce0bfe554f94118a4eb54a1124af09402767e65e1e29f0930457d622",
+      "content_hash": "ac9978c82c88dac5b94184d02e03697cd0f4c01ca9bcc92018c5e4c1082742dc",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "c4ac786c3319b861056bb32665ee70612fb2cc3115cd548aaa04b14335bbd40e"
+          "sha256": "7d8beb5f7bf6812b0458e141a51207b0c3958ce492b87c3a321e1d24f2041550"
         }
       ],
       "provenance": {
@@ -364,11 +364,11 @@
         "opencode"
       ],
       "dependencies": [],
-      "content_hash": "4b702d85632b295dbf762ce243dc4fd2b79b135417e04a2807522f89a3d14f1a",
+      "content_hash": "bfa8f6f62bcc31a02ed24ee4c19d27df5019b2b7575525dc94abf7756296e397",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "dae599854b217f594db66561267f2b744ed29d469511003ecc95a6660e08fe30"
+          "sha256": "8a65219bfc8bd49b22a745c8d51d5417ac4081df3028f6ce6b905e67bcd0ee18"
         }
       ],
       "provenance": {

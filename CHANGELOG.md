@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.5.5 — 2026-09-21
+
+- Enforce automatic skill routing for non-trivial tasks and trigger post-task self-evaluation and feedback (fixes #1).
+- Reject unsupported skill and client profiles with informative list of available profiles.
+- Fix Python interpreter shebang relocation issue in managed local runtime environments.
+- Add tool docstrings to MCP skill handlers for better agent self-description.
+
 ## 6.5.4 — 2026-09-15
 
 - Accept canonical workspace paths alongside `ws_<hash>` identities across MCP context, workspace, memory, handoff, and skill tools.

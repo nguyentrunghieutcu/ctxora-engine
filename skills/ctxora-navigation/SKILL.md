@@ -7,7 +7,7 @@ description: Route a CTXORA task to the smallest useful skill, command, agent ro
 
 Read `docs/COMMAND-SKILL-MAP.md` when the repository checkout is available. Choose one primary workflow; do not load every CTXORA skill.
 
-For implementation work, call `route_skills` first. The selected profile is a candidate boundary, and the router ranks only enabled skills. Read the highest-ranked relevant `SKILL.md` files, then submit `skill_feedback` only after validation. `prepare_context` performs the same metadata-only routing automatically under `diagnostics.skills`.
+For non-trivial implementation work, automatically call `route_skills` first (or `prepare_context` which performs metadata-only routing automatically under `diagnostics.skills`). The selected profile is a candidate boundary, and the router ranks only enabled skills. Read the highest-ranked relevant `SKILL.md` files, perform self-evaluation upon task completion, and submit `skill_feedback` after validation.
 
 - Setup or client connection: use `ctxora-setup`.
 - Repository discovery, retrieval, or planning: use `ctxora-repository-context`.

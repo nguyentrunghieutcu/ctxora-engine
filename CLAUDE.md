@@ -6,6 +6,7 @@ Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.
 ## MCP Tool Policy
 Use the local `CTXORA MCP` tools when they materially reduce guessing or token waste.
 
+- For non-trivial tasks, automatically invoke `route_skills` (or `prepare_context`) to route relevant skills before making changes.
 - Before non-trivial code changes, call `prepare_context` or `retrieve_context` with a concrete query and the smallest useful scope.
 - Before applying remembered project decisions, call `memory_search`.
 - After learning a durable project rule, workflow, bug cause, or architectural decision, call `memory_save` with the right tier:
@@ -14,7 +15,7 @@ Use the local `CTXORA MCP` tools when they materially reduce guessing or token w
   - `episodic` for specific incidents or decisions.
 - At 30,000 session tokens, call `handoff_conversation`; start a fresh task and use `restore_conversation_handoff` only when the retained handoff is needed.
 - Use `refresh_workspace` after significant file edits, and `invalidate_context` when indexed context may be stale.
-- Retain `diagnostics.skills.route_id` in task state. After validation passes, call `skill_feedback` with `success` and the skills actually used; use `failure` only when the failure is attributable to the guidance, and `corrected` when the user replaces the routed skill.
+- Retain `route_id` (or `diagnostics.skills.route_id`) in task state. After completing the task and validating, automatically perform self-evaluation and call `skill_feedback` with `success` and the skills actually used; use `failure` only when the failure is attributable to the guidance, and `corrected` when the user replaces the routed skill.
 - Do not call MCP tools just to appear thorough. Each call must have a specific purpose tied to the task.
 
 ## Rule 1 — Think Before Coding
@@ -37,6 +38,7 @@ Don't refactor what isn't broken. Match existing style.
 Define success criteria. Loop until verified.
 Don't follow steps. Define success and iterate.
 Strong success criteria let you loop independently.
+Non-trivial tasks must route skills automatically before editing, and completed tasks must trigger self-evaluation before handoff.
 
 ## Rule 5 — Use the model only for judgment calls
 Use me for: classification, drafting, summarization, extraction.

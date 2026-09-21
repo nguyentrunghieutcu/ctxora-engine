@@ -184,6 +184,14 @@ class SkillRouter:
                 "retain_route_id": True,
                 "success_requires_validation": True,
                 "user_correction_outcome": "corrected",
+                "trigger_self_evaluation": True,
+                "evaluation_axes": [
+                    "accuracy",
+                    "completeness",
+                    "clarity",
+                    "actionability",
+                    "conciseness",
+                ],
             },
         }
 
@@ -310,6 +318,10 @@ class SkillRouter:
         config_path = self.root / ".ctxora" / "skills-profile.json"
         if config_path.is_file():
             data = json.loads(config_path.read_text("utf-8"))
+            configured_profile = data.get("profile")
+            if configured_profile and configured_profile != "custom" and configured_profile not in self.catalog.profiles:
+                available = ", ".join(sorted(self.catalog.profiles))
+                raise ValueError(f"unknown skills profile: {configured_profile}. Available profiles: {available}")
             skills = set(data.get("skills", []))
             if skills and skills <= set(self.catalog.skills):
                 return data.get("profile", "custom"), skills

@@ -25,4 +25,5 @@ def get_profile(name: str) -> ClientProfile:
     try:
         return PROFILES[name]
     except KeyError as exc:
-        raise ValueError(f"unknown client profile: {name}") from exc
+        available = ", ".join(sorted(PROFILES))
+        raise ValueError(f"unknown client profile: {name}. Available profiles: {available}") from exc
