@@ -307,7 +307,7 @@ When configuring CTXORA for a new project (especially with **Codex CLI** or othe
 
 #### 1. Stable Runtime Path (`runtime/current`)
 
-Starting from `6.5.5`, CTXORA automatically maintains a symlink at `~/.local/share/ctxora/runtime/current` pointing to the latest versioned runtime. Never hardcode an old version directory (e.g. `.../runtime/6.5.4/...`) to prevent configuration breaks across updates.
+Starting from `6.5.6`, CTXORA automatically maintains a symlink at `~/.local/share/ctxora/runtime/current` pointing to the latest versioned runtime. Never hardcode an old version directory (e.g. `.../runtime/6.5.4/...`) to prevent configuration breaks across updates.
 
 - **Automated setup for Codex** (project-scoped to avoid overriding global config):
   ```bash

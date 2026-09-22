@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.5.6 — 2026-09-22
+
+- Fix Codex CLI dynamic tool namespace error (`unsupported call: mcp__ctxora`) by providing `--compact` CLI commands for routing and retrieval.
+- Automatically maintain a stable `runtime/current` symlink to prevent configuration breakage when upgrading the local Python runtime.
+- Prefer project-level `.codex/config.toml` over global configuration during client installation.
+- Add new project setup documentation to README for Codex CLI and generic MCP configurations.
+
 ## 6.5.5 — 2026-09-21
 
 - Enforce automatic skill routing for non-trivial tasks and trigger post-task self-evaluation and feedback (fixes #1).

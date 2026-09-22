@@ -306,7 +306,7 @@ Khi cấu hình CTXORA cho một dự án mới (đặc biệt là với **Codex
 
 #### 1. Cấu hình MCP với runtime ổn định (`runtime/current`)
 
-Từ phiên bản `6.5.5`, CTXORA tự động duy trì symlink `~/.local/share/ctxora/runtime/current` trỏ về phiên bản runtime mới nhất. Tuyệt đối **không** trỏ cứng vào thư mục phiên bản cũ (ví dụ `.../runtime/6.5.4/...`) để tránh bị hỏng cấu hình khi nâng cấp package.
+Từ phiên bản `6.5.6`, CTXORA tự động duy trì symlink `~/.local/share/ctxora/runtime/current` trỏ về phiên bản runtime mới nhất. Tuyệt đối **không** trỏ cứng vào thư mục phiên bản cũ (ví dụ `.../runtime/6.5.4/...`) để tránh bị hỏng cấu hình khi nâng cấp package.
 
 - **Khởi tạo tự động cho Codex** (lưu ở cấp độ dự án để không đè lên dự án khác):
   ```bash
