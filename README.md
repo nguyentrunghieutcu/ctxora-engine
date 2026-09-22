@@ -301,6 +301,71 @@ Manual MCP configuration:
 
 Do not commit client configuration containing personal absolute paths.
 
+### Accurate Setup Guide for New Projects
+
+When configuring CTXORA for a new project (especially with **Codex CLI** or other coding agents), follow these two core rules to avoid runtime path drift and namespace protocol errors:
+
+#### 1. Stable Runtime Path (`runtime/current`)
+
+Starting from `6.5.5`, CTXORA automatically maintains a symlink at `~/.local/share/ctxora/runtime/current` pointing to the latest versioned runtime. Never hardcode an old version directory (e.g. `.../runtime/6.5.4/...`) to prevent configuration breaks across updates.
+
+- **Automated setup for Codex** (project-scoped to avoid overriding global config):
+  ```bash
+  ctxora install --workspace . --profile codex --client-config .codex/config.toml
+  ```
+
+- **Standard `.codex/config.toml` in the project**:
+  ```toml
+  [mcp_servers.ctxora]
+  command = "/Users/<username>/.local/share/ctxora/runtime/current/venv/bin/python"
+  args = ["-m", "harness_context.cli.app", "run", "--workspace", "/absolute/path/to/project", "--transport", "stdio"]
+
+  [mcp_servers.ctxora.env]
+  CTXORA_ALLOWED_ROOTS = "/absolute/path/to/project"
+  PYTHONUTF8 = "1"
+  ```
+  *(Or use `command = "ctxora"` and `args = ["run", "--workspace", ".", "--transport", "stdio"]` if global CLI is installed)*
+
+- **Standard `.mcp.json`** (Claude Code / Cursor / generic MCP):
+  ```json
+  {
+    "mcpServers": {
+      "ctxora": {
+        "command": "/Users/<username>/.local/share/ctxora/runtime/current/venv/bin/python",
+        "args": [
+          "-m",
+          "harness_context.cli.app",
+          "run",
+          "--workspace",
+          "/absolute/path/to/project",
+          "--transport",
+          "stdio"
+        ],
+        "env": {
+          "CTXORA_ALLOWED_ROOTS": "/absolute/path/to/project",
+          "PYTHONUTF8": "1"
+        }
+      }
+    }
+  }
+  ```
+
+#### 2. Codex CLI Best Practice: CLI Execution Over Terminal (Avoid Namespace Errors)
+
+Codex CLI enables **Dynamic Tool Discovery** by default, wrapping external MCP servers under `default_api:mcp__<server>(reason: String)`. When using third-party API wire protocols, calling this placeholder or direct sub-tools triggers `unsupported call: mcp__ctxora` or `unsupported call: <tool>`.
+
+**Accurate Solution**: Add instructions to the project's `AGENTS.md` (or `.codex/rules/RULE.md`) directing the agent to execute CTXORA operations via shell commands:
+
+```markdown
+- **Codex CLI Rule**: Do not call `default_api:mcp__ctxora` or direct MCP function calls if they return `unsupported call`. Execute CTXORA via shell CLI:
+  - **Route skills**: `ctxora skills route "<task>" --compact --workspace .`
+    *(Compresses token usage from ~7,600 to ~180 tokens)*
+  - **Retrieve context**: `ctxora query "<task>" --compact --workspace .`
+    *(Filters to `evidence.items` path + line + code, reducing from ~2,300 to ~70 tokens)*
+  - **Submit feedback**: `ctxora skills feedback <route_id> --outcome <success|failure|corrected> --workspace .`
+  - **Refresh index**: `ctxora index --incremental --workspace .`
+```
+
 ## Core workflows
 
 ### Understand a repository

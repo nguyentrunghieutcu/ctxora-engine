@@ -6,8 +6,8 @@ Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.
 ## MCP Tool Policy
 Use the local `CTXORA MCP` tools when they materially reduce guessing or token waste.
 
-- For non-trivial tasks, automatically invoke `route_skills` (or `prepare_context`) to route relevant skills before making changes.
-- Before non-trivial code changes, call `prepare_context` or `retrieve_context` with a concrete query and the smallest useful scope.
+- For non-trivial tasks, automatically invoke `route_skills` (with `top_k=2, include_instructions=False`, or CLI `--no-instructions --top-k 2` to drop from 7,600 to 180 tokens) before making changes.
+- Before non-trivial code changes, call `prepare_context` or `retrieve_context` with a concrete query and the smallest useful scope; filter output to only `evidence.items` (path + line + code) and omit `diagnostics.skills` (reducing from 2,300 to 70 tokens).
 - Before applying remembered project decisions, call `memory_search`.
 - After learning a durable project rule, workflow, bug cause, or architectural decision, call `memory_save` with the right tier:
   - `semantic` for project facts and conventions.

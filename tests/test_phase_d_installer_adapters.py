@@ -120,5 +120,47 @@ class PhaseDInstallerAdapterTests(unittest.TestCase):
             self.assertEqual(server["args"][:2], ["-m", "harness_context.cli.app"])
 
 
+    def test_codex_prefers_project_level_config_if_it_exists(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "workspace"
+            workspace.mkdir()
+            codex_dir = workspace / ".codex"
+            codex_dir.mkdir()
+            project_config = codex_dir / "config.toml"
+            project_config.write_text("model = \"o3\"\n", "utf-8")
+
+            installer = ClientInstaller(workspace)
+            plan = installer.install("codex")
+            self.assertEqual(plan.config_path, str(project_config.resolve()))
+            self.assertIn("mcp_servers.ctxora", project_config.read_text("utf-8"))
+
+    def test_installer_normalizes_versioned_runtime_to_current_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "workspace"
+            workspace.mkdir()
+            config = Path(directory) / "client.json"
+
+            runtime_dir = Path(directory) / "runtime"
+            version_dir = runtime_dir / "6.5.5" / "venv" / "bin"
+            current_dir = runtime_dir / "current" / "venv" / "bin"
+            version_dir.mkdir(parents=True)
+            current_dir.mkdir(parents=True)
+
+            py_version = version_dir / "python"
+            py_current = current_dir / "python"
+            py_version.touch()
+            py_current.touch()
+
+            environment = {
+                "CTXORA_MCP_COMMAND": str(py_version),
+                "CTXORA_MCP_ARGS_PREFIX": "[]",
+            }
+            with patch.dict("os.environ", environment):
+                ClientInstaller(workspace).install("generic-mcp", config)
+
+            server = json.loads(config.read_text("utf-8"))["mcpServers"]["ctxora"]
+            self.assertEqual(server["command"], str(py_current))
+
+
 if __name__ == "__main__":
     unittest.main()

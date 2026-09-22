@@ -132,11 +132,11 @@
         "claude-code"
       ],
       "dependencies": [],
-      "content_hash": "9ea90f0041e7ba12d0d7aff1927bf34e88f60096a12fb304c1ecf66d89675643",
+      "content_hash": "6093d570043904783ea275e80cd730365255f188a3ef5c145bdd65deab2d131f",
       "files": [
         {
           "path": "context.md",
-          "sha256": "59ea84dfb729b8cdcba45f3516df8cf6a2059144d07cbbed93e5410d865d1218"
+          "sha256": "102fff5fda5962bcc301aa5c6c4eb7ad3b6186917d2ca4e8378181804f327fa1"
         }
       ],
       "provenance": {
@@ -286,11 +286,11 @@
         "claude-code"
       ],
       "dependencies": [],
-      "content_hash": "f2776f1fbb61e3c769c8f739a9c14960bb23aa8fae3094e8e3b7714d31ab1c59",
+      "content_hash": "62b091781931e92520d3bd6cc3bbd88565c3508fbc1182085a2e7a20dada6c90",
       "files": [
         {
           "path": "route.md",
-          "sha256": "de47ac862e00f7776cc53d88ec0bdf38c941e1c189458c7d47f23aff3b172cd9"
+          "sha256": "82e4b8b8a6956c6365ac7b9db5364f428d1609783a2e382ffa8fa335292eab07"
         }
       ],
       "provenance": {

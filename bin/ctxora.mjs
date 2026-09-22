@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -178,14 +178,30 @@ function fixShebangs(runtimeDirectory) {
   } catch {}
 }
 
+export function updateCurrentSymlink(runtimeDirectory) {
+  const currentLink = join(dirname(runtimeDirectory), "current");
+  try {
+    if (existsSync(currentLink) || lstatSync(currentLink).isSymbolicLink()) {
+      rmSync(currentLink, { recursive: true, force: true });
+    }
+  } catch {}
+  try {
+    symlinkSync(runtimeDirectory, currentLink, process.platform === "win32" ? "junction" : "dir");
+  } catch {}
+}
+
 export function ensureRuntime() {
   const runtimeDirectory = join(runtimeRoot(), "runtime", PACKAGE_VERSION);
   const python = runtimePython(runtimeDirectory);
-  if (existsSync(python) && markerMatches(join(runtimeDirectory, "install.json"))) return python;
+  if (existsSync(python) && markerMatches(join(runtimeDirectory, "install.json"))) {
+    updateCurrentSymlink(runtimeDirectory);
+    return python;
+  }
 
   const systemPython = findPython();
   if (!systemPython) throw new Error(`Python ${PYTHON_RANGE} is required`);
   installRuntime(systemPython, runtimeDirectory);
+  updateCurrentSymlink(runtimeDirectory);
   return runtimePython(runtimeDirectory);
 }
 

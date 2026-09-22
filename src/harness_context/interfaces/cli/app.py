@@ -16,6 +16,8 @@ from harness_context.api.v2 import PrepareContextRequest
 from harness_context.application.update_service import UpdateService
 from harness_context.branding import CLI_NAME, PAID_PLAN_NAME, PAID_PLAN_STATUS
 from harness_context.free_tools import (
+    compact_context,
+    compact_route,
     context_score,
     explain_context,
     instruction_document,
@@ -87,6 +89,8 @@ def build_parser() -> argparse.ArgumentParser:
         if name in {"query", "explain"}:
             command.add_argument("query")
             command.add_argument("--tokens", type=int, default=8_000)
+        if name == "query":
+            command.add_argument("--compact", action="store_true", help="Filter output to evidence.items (path + line + code) and omit diagnostics.skills")
         if name in {"generate-agents-md", "generate-copilot-instructions", "generate-cursor-rules"}:
             command.add_argument("--output")
             command.add_argument("--force", action="store_true")
@@ -127,6 +131,7 @@ def build_parser() -> argparse.ArgumentParser:
     route_skills.add_argument("--top-k", type=int, default=5)
     route_skills.add_argument("--token-budget", type=int, default=6_000)
     route_skills.add_argument("--no-instructions", action="store_true")
+    route_skills.add_argument("--compact", action="store_true", help="Compact output format for minimal token consumption")
     feedback = skill_actions.add_parser("feedback")
     feedback.add_argument("route_id")
     feedback.add_argument("--workspace", default=argparse.SUPPRESS)
@@ -188,14 +193,18 @@ def _main(argv: list[str] | None = None) -> int:
             router = SkillRouter(root, workspace_identity(root), catalog)
             workspace_id = workspace_identity(root)
             if args.skills_action == "route":
-                _print(router.route(
+                is_compact = getattr(args, "compact", False)
+                top_k = 2 if is_compact and args.top_k == 5 else args.top_k
+                include_instructions = False if is_compact else not args.no_instructions
+                routed = router.route(
                     workspace_id,
                     args.task,
                     args.profile,
-                    args.top_k,
-                    not args.no_instructions,
+                    top_k,
+                    include_instructions,
                     args.token_budget,
-                ))
+                )
+                _print(compact_route(routed) if is_compact else routed)
             elif args.skills_action == "feedback":
                 _print(router.feedback(
                     workspace_id,
@@ -403,7 +412,12 @@ def _main(argv: list[str] | None = None) -> int:
     if args.command in {"query", "explain"}:
         request = PrepareContextRequest(runtime.config.workspace_id, args.query, args.tokens)
         package = runtime.container.context.prepare(request).to_dict()
-        _print(package if args.command == "query" else explain_context(args.query, package, root))
+        if args.command == "explain":
+            _print(explain_context(args.query, package, root))
+        elif getattr(args, "compact", False):
+            _print(compact_context(package, root))
+        else:
+            _print(package)
         return 0
     snapshot = runtime.container.engine.export_snapshot(runtime.config.workspace_id)
     if args.command == "context-score":

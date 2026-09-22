@@ -109,6 +109,50 @@ def explain_context(question: str, package: dict[str, Any], workspace: Path) -> 
     }
 
 
+def compact_context(package: dict[str, Any], workspace: Path | None = None) -> dict[str, Any]:
+    evidence = package.get("evidence") or {}
+    items = evidence.get("items", [])
+    compact_items = []
+    for item in items:
+        raw_path = item.get("path", "")
+        if workspace is not None:
+            try:
+                path_str = Path(raw_path).resolve().relative_to(workspace.resolve()).as_posix()
+            except ValueError:
+                path_str = Path(raw_path).name
+        else:
+            path_str = raw_path
+        start = item.get("start_line", 0)
+        end = item.get("end_line", 0)
+        line = f"{start}-{end}" if start != end else str(start)
+        compact_items.append({
+            "path": path_str,
+            "line": line,
+            "code": item.get("content", ""),
+        })
+    return {
+        "evidence": {
+            "items": compact_items,
+        }
+    }
+
+
+def compact_route(result: dict[str, Any]) -> dict[str, Any]:
+    recommendations = []
+    for rec in result.get("recommendations", []):
+        recommendations.append({
+            "skill": rec.get("skill", ""),
+            "score": rec.get("score", 0.0),
+            "reasons": rec.get("reasons", []),
+            "path": rec.get("path", ""),
+        })
+    return {
+        "route_id": result.get("route_id", ""),
+        "profile": result.get("profile", ""),
+        "recommendations": recommendations,
+    }
+
+
 def instruction_document(snapshot: dict[str, Any], workspace: Path, target: str) -> str:
     repo = repository_map(snapshot, workspace)
     commands = repo["test_commands"] or ["Add the repository's validation command here."]
@@ -128,8 +172,16 @@ def instruction_document(snapshot: dict[str, Any], workspace: Path, target: str)
         "## Agent guidance",
         "- Read applicable repository rules and inspect git status before editing; preserve user changes.",
         "- Use only CTXORA tools exposed by the connected server, with the current workspace_id.",
-        "- For non-trivial tasks, automatically route skills using route_skills (or prepare_context) before implementing.",
-        "- Before non-trivial changes, call prepare_context OR retrieve_context with a concrete query and a small token budget. Do not routinely call both.",
+        *(
+            [
+                "- In Codex CLI (where MCP sub-tools are deferred under mcp__* namespaces), execute CTXORA operations directly via shell CLI: `ctxora skills route \"<task>\" --compact` (or `--no-instructions --top-k 2`), `ctxora query \"<task>\" --compact`, and `ctxora skills feedback <route_id> --outcome <success|failure|corrected> --workspace .`. Do not call default_api:mcp__ctxora or direct MCP tool functions if they return unsupported call.",
+            ]
+            if target.lower() in ("codex", "codex cli")
+            else [
+                "- For non-trivial tasks, automatically route skills using route_skills (use --no-instructions --top-k 2 to compress from 7,600 to 180 tokens) before implementing.",
+                "- Before non-trivial changes, call prepare_context OR retrieve_context with a concrete query and a small token budget. Compact output to only evidence.items (path + line + code) and omit diagnostics.skills (reducing from 2,300 to 70 tokens). Do not routinely call both.",
+            ]
+        ),
         "- Reuse relevant evidence already in context. Inspect cited source before editing; expand retrieval only for missing evidence. Do not invent paths parameters unsupported by the tool schema.",
         "- Use memory_search only for relevant prior decisions; verify memory against current source. Avoid duplicate memory injection.",
         "- Keep a compact checkpoint: objective, constraints, decisions, changed files, validation results, unresolved questions, next action, and route_id (from route_skills or diagnostics.skills).",

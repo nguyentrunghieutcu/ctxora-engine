@@ -300,6 +300,71 @@ Cấu hình MCP thủ công:
 
 Không commit cấu hình client chứa đường dẫn cá nhân.
 
+### Hướng Dẫn Setup Dự Án Mới Chuẩn Xác
+
+Khi cấu hình CTXORA cho một dự án mới (đặc biệt là với **Codex CLI** hoặc các agent coding khác), cần tuân thủ 2 nguyên tắc kỹ thuật sau để tránh lỗi lệch đường dẫn runtime và lỗi giao thức namespace:
+
+#### 1. Cấu hình MCP với runtime ổn định (`runtime/current`)
+
+Từ phiên bản `6.5.5`, CTXORA tự động duy trì symlink `~/.local/share/ctxora/runtime/current` trỏ về phiên bản runtime mới nhất. Tuyệt đối **không** trỏ cứng vào thư mục phiên bản cũ (ví dụ `.../runtime/6.5.4/...`) để tránh bị hỏng cấu hình khi nâng cấp package.
+
+- **Khởi tạo tự động cho Codex** (lưu ở cấp độ dự án để không đè lên dự án khác):
+  ```bash
+  ctxora install --workspace . --profile codex --client-config .codex/config.toml
+  ```
+
+- **Mẫu cấu hình `.codex/config.toml` chuẩn trong dự án**:
+  ```toml
+  [mcp_servers.ctxora]
+  command = "/Users/<username>/.local/share/ctxora/runtime/current/venv/bin/python"
+  args = ["-m", "harness_context.cli.app", "run", "--workspace", "/duong-dan/tuyet-doi/toi/project", "--transport", "stdio"]
+
+  [mcp_servers.ctxora.env]
+  CTXORA_ALLOWED_ROOTS = "/duong-dan/tuyet-doi/toi/project"
+  PYTHONUTF8 = "1"
+  ```
+  *(Hoặc dùng `command = "ctxora"` và `args = ["run", "--workspace", ".", "--transport", "stdio"]` nếu đã cài đặt global CLI)*
+
+- **Mẫu cấu hình `.mcp.json` chuẩn** (cho Claude Code / Cursor / generic MCP):
+  ```json
+  {
+    "mcpServers": {
+      "ctxora": {
+        "command": "/Users/<username>/.local/share/ctxora/runtime/current/venv/bin/python",
+        "args": [
+          "-m",
+          "harness_context.cli.app",
+          "run",
+          "--workspace",
+          "/duong-dan/tuyet-doi/toi/project",
+          "--transport",
+          "stdio"
+        ],
+        "env": {
+          "CTXORA_ALLOWED_ROOTS": "/duong-dan/tuyet-doi/toi/project",
+          "PYTHONUTF8": "1"
+        }
+      }
+    }
+  }
+  ```
+
+#### 2. Quy tắc bắt buộc cho Codex CLI: Chạy trực tiếp qua Terminal CLI (Tránh lỗi Namespace)
+
+Trong Codex CLI, hệ thống bật mặc định cơ chế **Dynamic Tool Discovery**, gom toàn bộ MCP server thành placeholder `default_api:mcp__<server>(reason: String)`. Khi gọi trực tiếp tool này trên các API proxy (như 9router / wire_api responses), Codex CLI sẽ báo lỗi `unsupported call: mcp__ctxora` hoặc `unsupported call: <sub-tool>`.
+
+**Giải pháp chuẩn xác**: Đưa chỉ dẫn vào `AGENTS.md` (hoặc `.codex/rules/RULE.md`) của dự án để agent luôn thực thi qua shell command thay vì gọi MCP function call:
+
+```markdown
+- **Quy tắc Codex CLI**: Tuyệt đối không gọi `default_api:mcp__ctxora` hoặc gọi function call MCP trực tiếp nếu báo `unsupported call`. Thực thi CTXORA qua terminal:
+  - **Routing kỹ năng**: `ctxora skills route "<task>" --compact --workspace .`
+    *(Nén dữ liệu từ ~7,600 tokens xuống ~180 tokens)*
+  - **Lấy context trước khi sửa**: `ctxora query "<task>" --compact --workspace .`
+    *(Chỉ lấy `evidence.items` path + line + code, giảm từ ~2,300 tokens xuống ~70 tokens)*
+  - **Gửi đánh giá sau hoàn tất**: `ctxora skills feedback <route_id> --outcome <success|failure|corrected> --workspace .`
+  - **Cập nhật index khi đổi file**: `ctxora index --incremental --workspace .`
+```
+
 ## Workflow chính
 
 ### Tìm hiểu repository

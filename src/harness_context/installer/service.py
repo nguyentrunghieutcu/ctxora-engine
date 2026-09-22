@@ -76,6 +76,11 @@ class ClientInstaller:
 
     def _server_config(self) -> dict[str, Any]:
         command = os.environ.get("CTXORA_MCP_COMMAND", CLI_NAME)
+        match = re.search(r"(.*?/runtime/)\d+\.\d+\.\d+(/.*)", command)
+        if match:
+            candidate = f"{match.group(1)}current{match.group(2)}"
+            if Path(candidate).exists():
+                command = candidate
         prefix = json.loads(os.environ.get("CTXORA_MCP_ARGS_PREFIX", "[]"))
         if not isinstance(prefix, list) or not all(isinstance(item, str) for item in prefix):
             raise ValueError("CTXORA_MCP_ARGS_PREFIX must be a JSON array of strings")
@@ -89,9 +94,14 @@ class ClientInstaller:
     def _mutation_path(profile: ClientProfile) -> str:
         return f"mcp_servers.{profile.server_key}" if profile.config_format == "toml" else f"mcpServers.{profile.server_key}"
 
-    @staticmethod
-    def _config_path(profile: ClientProfile, config_path: str | Path | None) -> Path:
-        return Path(config_path or profile.default_config).expanduser().resolve()
+    def _config_path(self, profile: ClientProfile, config_path: str | Path | None) -> Path:
+        if config_path:
+            return Path(config_path).expanduser().resolve()
+        if profile.name == "codex":
+            project_config = self.workspace / ".codex" / "config.toml"
+            if project_config.exists():
+                return project_config.resolve()
+        return Path(profile.default_config).expanduser().resolve()
 
     @staticmethod
     def _read(profile: ClientProfile, path: Path) -> Any:
